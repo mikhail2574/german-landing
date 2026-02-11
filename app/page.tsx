@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import type { FormEvent, ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import type { FormEvent, ReactNode, TouchEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Locale = "ua" | "ru";
 
@@ -185,19 +185,40 @@ const copy = {
     program: {
       label: "Основна програма",
       title: "Покроковий шлях до DTZ (B1)",
-      subtitle: "Три етапи, які дають конкретний результат у щоденному житті.",
+      subtitle: "Конкретні теми для Alltag, Jobcenter, Arzt, Telefon, Briefe, Arbeit і Wohnung.",
       total: "~6–7 місяців",
+      lessonFlowTitle: "Як проходить урок (90 хв)",
+      lessonFlow: [
+        { time: "0–15 хв", text: "Розігрів і повторення фраз із минулого заняття." },
+        { time: "15–45 хв", text: "Нова тема на живих сценаріях: Arzt, Jobcenter, Arbeit, Telefon." },
+        { time: "45–70 хв", text: "Рольові діалоги в парах і міні-групах з викладачем." },
+        { time: "70–90 хв", text: "Розбір помилок, шаблони фраз і план до наступного уроку." }
+      ],
+      milestoneTitle: "Який результат ви бачите",
+      milestones: [
+        { period: "Після 4 тижнів", result: "Спокійно проходите базові ситуації Alltag і Telefon без пауз." },
+        { period: "Після 8 тижнів", result: "Розумієте листи від Jobcenter/Behörden і можете відповідати за шаблоном." },
+        { period: "До DTZ/B1", result: "Говорите структуровано, пишете текст і контролюєте час на екзамені." }
+      ],
+      topicsTitle: "Теми модуля",
+      outcomesTitle: "Що в результаті",
       cards: [
         {
           step: "Крок 1",
           level: "A1",
           duration: "7 тижнів",
           ribbon: "Йде набір · Старт 21.02 · Залишилось 4 місця",
+          topics: [
+            "Alltag: магазин, транспорт, аптека",
+            "Arzt: запис на Termin і опис симптомів",
+            "Telefon: короткі дзвінки за скриптом",
+            "Briefe: прості форми й анкети",
+            "Wohnung: оренда, побутові запити"
+          ],
           outcomes: [
-            "представитися та пояснити прості потреби",
-            "записатися на Termin телефоном за простим сценарієм",
-            "вести короткі діалоги в магазині, аптеці, транспорті",
-            "заповнювати прості форми та анкети"
+            "представляєтесь і пояснюєте базові потреби",
+            "бронюєте Termin телефоном за зрозумілим шаблоном",
+            "ведете прості діалоги в щоденних ситуаціях"
           ]
         },
         {
@@ -205,11 +226,17 @@ const copy = {
           level: "A2",
           duration: "2 рівні по 7 тижнів",
           ribbon: "",
+          topics: [
+            "Jobcenter і Behörden: уточнення, довідки, терміни",
+            "Arbeit: задачі, зміни, розмова з колегами",
+            "Briefe: відповіді на офіційні листи",
+            "Telefon: перенесення/підтвердження Termin",
+            "Wohnung: Hausverwaltung, Nebenkosten, ремонт"
+          ],
           outcomes: [
-            "уточнювати інформацію в Jobcenter і Behörden",
-            "читати листи та відповідати за простим шаблоном",
-            "обговорювати задачі на роботі і ставити уточнювальні питання",
-            "переносити Termin і домовлятися про новий час"
+            "уточнюєте питання в Jobcenter без стресу",
+            "читаєте й пишете робочі та офіційні повідомлення",
+            "обговорюєте задачі на роботі і погоджуєте деталі"
           ]
         },
         {
@@ -217,11 +244,17 @@ const copy = {
           level: "B1 (DTZ)",
           duration: "7 тижнів",
           ribbon: "",
+          topics: [
+            "DTZ: структура, критерії, таймінг",
+            "Усна частина: аргументація й реакція на питання",
+            "Письмова частина: лист і структурований текст",
+            "Leben in Deutschland: типові теми й логіка відповідей",
+            "Arbeit/Wohnung/Behörden: складні кейси B1-рівня"
+          ],
           outcomes: [
-            "виконувати типові завдання DTZ зі стратегією часу",
-            "писати структурований текст для екзамену",
-            "проходити усну частину без паніки за шаблонами відповідей",
-            "уникати типових помилок завдяки тренувальним розборам"
+            "проходите типові завдання DTZ зі стратегією часу",
+            "пишете екзаменаційний текст за чітким каркасом",
+            "впевнено тримаєтесь в усній частині B1"
           ]
         }
       ]
@@ -231,6 +264,11 @@ const copy = {
       title: "Короткі модулі 3–3,5 тижні під конкретну задачу",
       prev: "Назад",
       next: "Вперед",
+      forWho: "Кому підходить",
+      resultLabel: "Результат",
+      formatLabel: "Формат",
+      durationLabel: "Тривалість",
+      swipeHint: "Свайпніть вліво/вправо на мобільному",
       courses: [
         {
           icon: "doctor" as IconName,
@@ -301,13 +339,82 @@ const copy = {
     },
     founder: {
       label: "Хто веде курс",
-      title: "Практичний підхід на основі особистого досвіду",
+      title: "Своя людина, яка сама пройшла шлях інтеграції в Німеччині",
       text:
-        "Курс створено іммігрантом, який сам пройшов шлях від нуля до офіційних іспитів у Німеччині. Без завищених обіцянок: тільки послідовна практика для Alltag, Arbeit і Integration.",
-      signals: [
-        "Фокус на підготовці до DTZ (B1)",
-        "Окремий модуль для LiD",
-        "Відповідаємо протягом 24 годин"
+        "Я переїхав(ла) до Німеччини без впевненої мови, проходив(ла) бюрократію, пошук роботи й підготовку до офіційних тестів. Цей курс створено, щоб ви не губилися в реальних ситуаціях і бачили прогнозований прогрес щотижня.",
+      profileName: "Deutsch für Leben",
+      profileRole: "Founder & Method Lead",
+      trustLine: "Office in Leipzig · Online по всій Німеччині",
+      bullets: [
+        {
+          title: "Що ви отримаєте",
+          text: "Робочі мовні шаблони для Arzt, Jobcenter, Arbeit, Telefon і листів."
+        },
+        {
+          title: "Як ми працюємо",
+          text: "Малі групи до 6 людей, чіткий план уроку, фідбек без перевантаження."
+        },
+        {
+          title: "Чим відрізняємось від безкоштовних курсів",
+          text: "Більше speaking-практики, персональні корекції і фокус на ваших сценаріях."
+        }
+      ]
+    },
+    groups: {
+      label: "Ближчі групи",
+      title: "Потоки з фіксованим стартом і прозорою кількістю місць",
+      subtitle: "Набір іде регулярно. Малі групи до 6 учасників, щоб кожен встиг говорити.",
+      proof: ["Малі групи: до 6 людей", "Новий набір зазвичай кожні 3–4 тижні"],
+      cards: [
+        {
+          status: "Йде набір",
+          level: "A1 Start",
+          start: "21.02",
+          schedule: "Вт / Чт / Сб · 18:30",
+          format: "Онлайн",
+          seats: "Залишилось 4 місця",
+          almostFull: true
+        },
+        {
+          status: "Йде набір",
+          level: "A2 Progress",
+          start: "03.03",
+          schedule: "Пн / Ср · 19:00",
+          format: "Онлайн",
+          seats: "Залишилось 6 місць",
+          almostFull: false
+        },
+        {
+          status: "Майже заповнено",
+          level: "B1 DTZ Focus",
+          start: "10.03",
+          schedule: "Вт / Чт · 18:45",
+          format: "Офлайн Leipzig + online backup",
+          seats: "Залишилось 2 місця",
+          almostFull: true
+        }
+      ]
+    },
+    testimonials: {
+      label: "Відгуки / Beta feedback",
+      title: "Блок під реальні відгуки перших учасників",
+      subtitle: "Ми не публікуємо вигадані історії. Нижче структура, яку легко оновити після потоку.",
+      cards: [
+        {
+          tag: "Перші учасники A1",
+          quote: "Тут буде короткий реальний відгук після завершення найближчого потоку.",
+          meta: "Статус: збираємо зворотний зв’язок"
+        },
+        {
+          tag: "Перші учасники A2",
+          quote: "Тут буде приклад про прогрес у Jobcenter / Briefe / Telefon.",
+          meta: "Статус: beta feedback в обробці"
+        },
+        {
+          tag: "Перші учасники B1",
+          quote: "Тут буде кейс підготовки до DTZ і усної частини B1.",
+          meta: "Статус: додаємо після екзамену"
+        }
       ]
     },
     faq: {
@@ -316,48 +423,56 @@ const copy = {
       items: [
         {
           q: "Яка вартість і як проходить оплата?",
-          a: "Після заявки надсилаємо актуальну вартість за рівнем і форматом, без зобов’язань."
+          a: "Надсилаємо актуальну вартість після заявки. Оплата помісячна або за модуль, без прихованих платежів."
         },
         {
-          q: "Є онлайн та офлайн формати?",
-          a: "Так, онлайн — по всій Німеччині, офлайн — у Leipzig."
+          q: "Де проходять заняття офлайн?",
+          a: "Основний формат — online по всій Німеччині. Офлайн-групи проходять у Leipzig (центр), адресу надсилаємо після підтвердження місця."
         },
         {
           q: "Що робити, якщо пропустив(ла) заняття?",
-          a: "Надаємо матеріали та короткий план, щоб повернутися в темп."
+          a: "Надаємо конспект, ключові фрази і домашній план, щоб ви швидко повернулися в темп."
+        },
+        {
+          q: "Чи є повернення коштів?",
+          a: "Так, повернення можливе до початку модуля. Після старту повернення рахується пропорційно невикористаним заняттям."
         },
         {
           q: "Чи підходить курс, якщо я з нуля?",
           a: "Так, рівень A1 повністю розрахований на старт без бази."
         },
         {
-          q: "Чим відрізняється від VHS?",
-          a: "Малі групи, більше мовної практики та фокус на реальних сценаріях."
-        },
-        {
-          q: "Є домашні завдання й матеріали?",
-          a: "Так, даємо регулярні завдання, шаблони та робочі матеріали."
+          q: "Скільки триває шлях до B1?",
+          a: "У середньому 6–7 місяців за стабільної участі і виконання практики між уроками."
         },
         {
           q: "Скільки часу потрібно поза заняттями?",
-          a: "Орієнтовно 20–40 хвилин у дні без уроку."
+          a: "Чесний діапазон: 20–40 хв у звичайні дні і 60–90 хв перед тестовими модулями."
         },
         {
-          q: "Коли найближчий старт?",
-          a: "Найближчі дати старту повідомляємо після заявки."
+          q: "Допомагаєте з підготовкою до DTZ?",
+          a: "Так. Є окремий B1-блок з таймінгом, усною практикою і письмовими шаблонами під формат екзамену."
+        },
+        {
+          q: "Чим курс відрізняється від VHS або безкоштовних курсів?",
+          a: "Малі групи до 6 людей, більше speaking-практики, персональний фідбек і фокус на ваших реальних сценаріях."
+        },
+        {
+          q: "Коли найближчий старт і як забронювати місце?",
+          a: "Найближчий старт A1 — 21.02. Надішліть заявку і ми підтвердимо місце протягом 24 годин."
         }
       ]
     },
     contacts: {
       label: "Контакти",
-      title: "Швидкий зв’язок із командою",
-      text: "Пишіть у зручний канал, відповідаємо без затримок.",
+      title: "Швидкий зв’язок із командою школи",
+      text: "Office in Leipzig · online по всій Німеччині. Відповідаємо щодня.",
       email: "E-Mail",
       telegram: "Telegram",
-      city: "Місто",
+      city: "Офіс / формат",
       response: "Час відповіді",
-      cityValue: "Leipzig",
-      responseValue: "Відповімо протягом 24 годин"
+      cityValue: "Leipzig (центр) · online по Німеччині",
+      responseValue: "Відповімо протягом 24 годин, зазвичай швидше"
     },
     form: {
       quickLabel: "Швидкий вибір перед заявкою",
@@ -545,19 +660,40 @@ const copy = {
     program: {
       label: "Основная программа",
       title: "Пошаговый путь к DTZ (B1)",
-      subtitle: "Три этапа, которые дают конкретный результат в реальной жизни.",
+      subtitle: "Конкретные темы для Alltag, Jobcenter, Arzt, Telefon, Briefe, Arbeit и Wohnung.",
       total: "~6–7 месяцев",
+      lessonFlowTitle: "Как проходит урок (90 мин)",
+      lessonFlow: [
+        { time: "0–15 мин", text: "Разогрев и повтор ключевых фраз прошлого урока." },
+        { time: "15–45 мин", text: "Новая тема на живых сценариях: Arzt, Jobcenter, Arbeit, Telefon." },
+        { time: "45–70 мин", text: "Ролевые диалоги в парах и мини-группах с преподавателем." },
+        { time: "70–90 мин", text: "Разбор ошибок, рабочие шаблоны и план до следующего урока." }
+      ],
+      milestoneTitle: "Какой результат вы видите",
+      milestones: [
+        { period: "После 4 недель", result: "Спокойно проходите базовые ситуации Alltag и Telefon без долгих пауз." },
+        { period: "После 8 недель", result: "Понимаете письма от Jobcenter/Behörden и отвечаете по рабочему шаблону." },
+        { period: "К экзамену DTZ/B1", result: "Говорите структурно, пишете текст и контролируете время на тесте." }
+      ],
+      topicsTitle: "Темы модуля",
+      outcomesTitle: "Что в результате",
       cards: [
         {
           step: "Шаг 1",
           level: "A1",
           duration: "7 недель",
           ribbon: "Идет набор · Старт 21.02 · Осталось 4 места",
+          topics: [
+            "Alltag: магазин, транспорт, аптека",
+            "Arzt: запись на Termin и описание симптомов",
+            "Telefon: короткие звонки по скрипту",
+            "Briefe: простые формы и анкеты",
+            "Wohnung: аренда и бытовые запросы"
+          ],
           outcomes: [
-            "представиться и объяснить простые потребности",
-            "записаться на Termin по телефону по простому сценарию",
-            "вести короткие диалоги в магазине, аптеке, транспорте",
-            "заполнять простые формы и анкеты"
+            "представляетесь и объясняете базовые потребности",
+            "бронируете Termin по телефону по понятному шаблону",
+            "ведете простые диалоги в ежедневных ситуациях"
           ]
         },
         {
@@ -565,11 +701,17 @@ const copy = {
           level: "A2",
           duration: "2 уровня по 7 недель",
           ribbon: "",
+          topics: [
+            "Jobcenter и Behörden: уточнения, справки, термины",
+            "Arbeit: задачи, изменения, диалог с коллегами",
+            "Briefe: ответы на официальные письма",
+            "Telefon: перенос и подтверждение Termin",
+            "Wohnung: Hausverwaltung, Nebenkosten, ремонт"
+          ],
           outcomes: [
-            "уточнять информацию в Jobcenter и Behörden",
-            "читать письма и отвечать по простому шаблону",
-            "обсуждать задачи на работе и задавать уточняющие вопросы",
-            "переносить Termin и согласовывать новое время"
+            "уточняете вопросы в Jobcenter без стресса",
+            "читаете и пишете рабочие и официальные сообщения",
+            "обсуждаете задачи на работе и согласовываете детали"
           ]
         },
         {
@@ -577,11 +719,17 @@ const copy = {
           level: "B1 (DTZ)",
           duration: "7 недель",
           ribbon: "",
+          topics: [
+            "DTZ: структура, критерии и тайминг",
+            "Устная часть: аргументация и реакция на вопросы",
+            "Письменная часть: письмо и структурированный текст",
+            "Leben in Deutschland: типовые темы и логика ответов",
+            "Arbeit/Wohnung/Behörden: сложные кейсы уровня B1"
+          ],
           outcomes: [
-            "выполнять типовые задания DTZ со стратегией времени",
-            "писать структурированный текст для экзамена",
-            "проходить устную часть без паники по шаблонам ответов",
-            "избегать типовых ошибок благодаря тренировочным разборам"
+            "проходите типовые задания DTZ со стратегией времени",
+            "пишете экзаменационный текст по понятной структуре",
+            "уверенно держитесь в устной части B1"
           ]
         }
       ]
@@ -591,6 +739,11 @@ const copy = {
       title: "Короткие модули 3–3,5 недели под конкретную задачу",
       prev: "Назад",
       next: "Вперёд",
+      forWho: "Кому подходит",
+      resultLabel: "Результат",
+      formatLabel: "Формат",
+      durationLabel: "Длительность",
+      swipeHint: "Свайп влево/вправо на мобильном",
       courses: [
         {
           icon: "doctor" as IconName,
@@ -661,10 +814,83 @@ const copy = {
     },
     founder: {
       label: "Кто ведет курс",
-      title: "Практический подход на основе личного опыта",
+      title: "Свой человек, который сам прошел путь интеграции в Германии",
       text:
-        "Курс создан иммигрантом, который сам прошел путь от нуля до официальных экзаменов в Германии. Без завышенных обещаний: только последовательная практика для Alltag, Arbeit и Integration.",
-      signals: ["Фокус на подготовке к DTZ (B1)", "Отдельный модуль LiD", "Ответим в течение 24 часов"]
+        "Я переехал(а) в Германию без уверенного немецкого, проходил(а) бюрократию, поиск работы и подготовку к официальным тестам. Курс сделан так, чтобы вы не терялись в реальных ситуациях и видели понятный прогресс каждую неделю.",
+      profileName: "Deutsch für Leben",
+      profileRole: "Founder & Method Lead",
+      trustLine: "Office in Leipzig · Online по всей Германии",
+      bullets: [
+        {
+          title: "Что вы получите",
+          text: "Рабочие речевые шаблоны для Arzt, Jobcenter, Arbeit, Telefon и писем."
+        },
+        {
+          title: "Как мы работаем",
+          text: "Малые группы до 6 человек, четкая структура урока и обратная связь без перегруза."
+        },
+        {
+          title: "Чем отличаемся от бесплатных курсов",
+          text: "Больше speaking-практики, персональные корректировки и фокус на ваших кейсах."
+        }
+      ]
+    },
+    groups: {
+      label: "Ближайшие группы",
+      title: "Потоки с фиксированным стартом и прозрачным количеством мест",
+      subtitle: "Набор идет регулярно. Малые группы до 6 участников, чтобы каждый говорил на уроке.",
+      proof: ["Малые группы: до 6 человек", "Новый набор обычно каждые 3–4 недели"],
+      cards: [
+        {
+          status: "Идет набор",
+          level: "A1 Start",
+          start: "21.02",
+          schedule: "Вт / Чт / Сб · 18:30",
+          format: "Онлайн",
+          seats: "Осталось 4 места",
+          almostFull: true
+        },
+        {
+          status: "Идет набор",
+          level: "A2 Progress",
+          start: "03.03",
+          schedule: "Пн / Ср · 19:00",
+          format: "Онлайн",
+          seats: "Осталось 6 мест",
+          almostFull: false
+        },
+        {
+          status: "Почти заполнено",
+          level: "B1 DTZ Focus",
+          start: "10.03",
+          schedule: "Вт / Чт · 18:45",
+          format: "Офлайн Leipzig + online backup",
+          seats: "Осталось 2 места",
+          almostFull: true
+        }
+      ]
+    },
+    testimonials: {
+      label: "Отзывы / Beta feedback",
+      title: "Блок под реальные отзывы первых участников",
+      subtitle: "Мы не публикуем выдуманные истории. Ниже структура, которую легко обновить после потока.",
+      cards: [
+        {
+          tag: "Первые участники A1",
+          quote: "Здесь будет короткий реальный отзыв после завершения ближайшего потока.",
+          meta: "Статус: собираем обратную связь"
+        },
+        {
+          tag: "Первые участники A2",
+          quote: "Здесь будет пример про прогресс в Jobcenter / Briefe / Telefon.",
+          meta: "Статус: beta feedback в обработке"
+        },
+        {
+          tag: "Первые участники B1",
+          quote: "Здесь будет кейс подготовки к DTZ и устной части B1.",
+          meta: "Статус: добавим после экзамена"
+        }
+      ]
     },
     faq: {
       label: "FAQ",
@@ -672,48 +898,56 @@ const copy = {
       items: [
         {
           q: "Какая стоимость и как проходит оплата?",
-          a: "После заявки отправляем актуальную стоимость по уровню и формату, без обязательств."
+          a: "Актуальную стоимость отправляем после заявки. Оплата помесячно или за модуль, без скрытых платежей."
         },
         {
-          q: "Есть онлайн и офлайн форматы?",
-          a: "Да, онлайн — по всей Германии, офлайн — в Leipzig."
+          q: "Где проходят офлайн-занятия?",
+          a: "Базовый формат — online по всей Германии. Офлайн-группы проходят в Leipzig (центр), адрес отправляем после подтверждения места."
         },
         {
           q: "Что делать, если пропустил(а) занятие?",
-          a: "Даем материалы и короткий план, чтобы вернуться в темп."
+          a: "Даем конспект, ключевые фразы и домашний план, чтобы быстро вернуться в ритм."
+        },
+        {
+          q: "Есть ли возвраты?",
+          a: "Да. Возврат возможен до старта модуля, после начала — пропорционально неиспользованным занятиям."
         },
         {
           q: "Подходит ли курс, если я с нуля?",
           a: "Да, уровень A1 полностью рассчитан на старт без базы."
         },
         {
-          q: "Чем отличается от VHS?",
-          a: "Малые группы, больше языковой практики и фокус на реальных сценариях."
-        },
-        {
-          q: "Есть домашние задания и материалы?",
-          a: "Да, даем регулярные задания, шаблоны и рабочие материалы."
+          q: "Сколько длится путь до B1?",
+          a: "В среднем 6–7 месяцев при регулярном посещении и выполнении практики между уроками."
         },
         {
           q: "Сколько времени нужно вне занятий?",
-          a: "Ориентировочно 20–40 минут в дни без урока."
+          a: "Честный диапазон: 20–40 минут в обычные дни и 60–90 минут перед тестовыми модулями."
         },
         {
-          q: "Когда ближайший старт?",
-          a: "Ближайшие даты старта сообщаем после заявки."
+          q: "Помогаете с подготовкой к DTZ?",
+          a: "Да. Есть отдельный B1-блок с таймингом, устной практикой и письменными шаблонами под формат экзамена."
+        },
+        {
+          q: "Чем курс отличается от VHS или бесплатных программ?",
+          a: "Малые группы до 6 человек, больше speaking-практики, персональная обратная связь и фокус на ваших сценариях."
+        },
+        {
+          q: "Когда ближайший старт и как забронировать место?",
+          a: "Ближайший старт A1 — 21.02. Отправьте заявку, и мы подтвердим место в течение 24 часов."
         }
       ]
     },
     contacts: {
       label: "Контакты",
-      title: "Быстрая связь с командой",
-      text: "Пишите в удобный канал, отвечаем без задержек.",
+      title: "Быстрая связь с командой школы",
+      text: "Office in Leipzig · online по всей Германии. Отвечаем ежедневно.",
       email: "E-Mail",
       telegram: "Telegram",
-      city: "Город",
+      city: "Офис / формат",
       response: "Время ответа",
-      cityValue: "Leipzig",
-      responseValue: "Ответим в течение 24 часов"
+      cityValue: "Leipzig (центр) · online по Германии",
+      responseValue: "Ответим в течение 24 часов, обычно быстрее"
     },
     form: {
       quickLabel: "Быстрый выбор перед заявкой",
@@ -1057,6 +1291,8 @@ export default function Home() {
   const [cardsPerView, setCardsPerView] = useState(1);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [showMobileSticky, setShowMobileSticky] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const touchDeltaX = useRef(0);
 
   const t = copy[locale];
   const maxCarouselIndex = Math.max(0, t.mini.courses.length - cardsPerView);
@@ -1144,6 +1380,48 @@ export default function Home() {
     setCarouselIndex(Math.max(0, Math.min(index, maxCarouselIndex)));
   };
 
+  const handleMiniTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    touchStartX.current = event.touches[0]?.clientX ?? null;
+    touchDeltaX.current = 0;
+  };
+
+  const handleMiniTouchMove = (event: TouchEvent<HTMLDivElement>) => {
+    if (touchStartX.current === null) {
+      return;
+    }
+    touchDeltaX.current = (event.touches[0]?.clientX ?? 0) - touchStartX.current;
+  };
+
+  const handleMiniTouchEnd = () => {
+    if (Math.abs(touchDeltaX.current) > 45) {
+      if (touchDeltaX.current < 0) {
+        goToSlide(carouselIndex + 1);
+      } else {
+        goToSlide(carouselIndex - 1);
+      }
+    }
+    touchStartX.current = null;
+    touchDeltaX.current = 0;
+  };
+
+  const faqJsonLd = useMemo(
+    () =>
+      JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        inLanguage: locale === "ua" ? "uk" : "ru",
+        mainEntity: t.faq.items.map((item) => ({
+          "@type": "Question",
+          name: item.q,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: item.a
+          }
+        }))
+      }),
+    [locale, t.faq.items]
+  );
+
   const handleLeadSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const email = leadEmail.trim();
@@ -1222,6 +1500,7 @@ export default function Home() {
 
   return (
     <main className="relative isolate overflow-x-clip pb-36 md:pb-16">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqJsonLd }} />
       <div className="pointer-events-none absolute -top-32 right-[-200px] hidden h-[520px] w-[520px] rounded-full bg-blue-300/40 blur-3xl md:block" />
       <div className="pointer-events-none absolute left-[-220px] top-[260px] hidden h-[460px] w-[460px] rounded-full bg-sky-200/40 blur-3xl md:block" />
 
@@ -1446,7 +1725,7 @@ export default function Home() {
           <SectionHeader label={t.problem.label} title={t.problem.title} subtitle={t.problem.subtitle} />
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             {t.problem.cards.map((card) => (
-              <article key={card.title} className="rounded-2xl border border-blue-100 bg-white p-6 shadow-lg shadow-blue-100/60 transition hover:-translate-y-1 hover:shadow-xl">
+              <article key={card.title} className="h-full rounded-2xl border border-blue-100 bg-white p-6 shadow-lg shadow-blue-100/60 transition hover:-translate-y-1 hover:shadow-xl">
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 rounded-xl bg-blue-50 p-2 text-blue-700">{renderIcon(card.icon)}</div>
                   <div>
@@ -1459,11 +1738,46 @@ export default function Home() {
           </div>
         </section>
 
+        <section className="fade-up mt-20 rounded-[2rem] border border-blue-100 bg-white p-6 shadow-xl shadow-blue-100/55 md:p-10" style={{ animationDelay: "0.115s" }}>
+          <div className="grid gap-7 lg:grid-cols-[0.95fr_1.05fr]">
+            <article className="overflow-hidden rounded-3xl border border-blue-100 bg-blue-50/35">
+              <Image
+                src="/images/founder-portrait.svg"
+                alt={t.founder.title}
+                width={640}
+                height={720}
+                className="w-full"
+                sizes="(max-width: 1024px) 100vw, 42vw"
+              />
+            </article>
+            <div>
+              <SectionHeader label={t.founder.label} title={t.founder.title} />
+              <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+                <p className="font-semibold text-slate-900">{t.founder.profileName}</p>
+                <p className="text-sm text-slate-600">{t.founder.profileRole}</p>
+                <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-semibold text-blue-800">
+                  {renderIcon("pin", "h-3.5 w-3.5")}
+                  {t.founder.trustLine}
+                </p>
+              </div>
+              <p className="mt-5 text-slate-700">{t.founder.text}</p>
+              <div className="mt-5 grid gap-3 md:grid-cols-3">
+                {t.founder.bullets.map((bullet) => (
+                  <article key={bullet.title} className="h-full rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
+                    <p className="text-sm font-semibold text-slate-900">{bullet.title}</p>
+                    <p className="mt-2 text-sm text-slate-600">{bullet.text}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="fade-up mt-20 rounded-[2rem] border border-blue-100 bg-gradient-to-br from-white via-blue-50/40 to-white p-7 shadow-xl shadow-blue-100/60 md:p-10" style={{ animationDelay: "0.13s" }}>
           <SectionHeader label={t.solution.label} title={t.solution.title} />
           <div className="mt-8 grid gap-3 md:grid-cols-2">
             {t.solution.cards.map((card) => (
-              <article key={card.title} className="rounded-xl border border-blue-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+              <article key={card.title} className="h-full rounded-xl border border-blue-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-start gap-3">
                   <div className="rounded-lg bg-blue-50 p-2 text-blue-700">{renderIcon(card.icon)}</div>
                   <div>
@@ -1480,7 +1794,7 @@ export default function Home() {
           <SectionHeader label={t.examples.label} title={t.examples.title} />
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             {t.examples.items.map((item) => (
-              <article key={item.title} className="rounded-2xl border border-blue-100 bg-white p-5 shadow-md">
+              <article key={item.title} className="h-full rounded-2xl border border-blue-100 bg-white p-5 shadow-md">
                 <div className="flex items-center gap-2 text-blue-700">
                   {renderIcon(item.icon)}
                   <p className="text-sm font-semibold">{item.title}</p>
@@ -1497,9 +1811,36 @@ export default function Home() {
             {t.program.total}
           </p>
 
+          <div className="mt-7 grid gap-4 lg:grid-cols-2">
+            <article className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-blue-700">{t.program.lessonFlowTitle}</p>
+              <ul className="mt-4 space-y-3">
+                {t.program.lessonFlow.map((item) => (
+                  <li key={item.time} className="flex gap-3">
+                    <span className="mt-1 inline-flex h-6 min-w-[70px] items-center justify-center rounded-md bg-blue-50 px-2 text-xs font-bold text-blue-800">
+                      {item.time}
+                    </span>
+                    <span className="text-sm text-slate-700">{item.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+            <article className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-blue-700">{t.program.milestoneTitle}</p>
+              <div className="mt-4 space-y-3">
+                {t.program.milestones.map((item) => (
+                  <div key={item.period} className="rounded-xl border border-blue-100 bg-blue-50/60 p-3">
+                    <p className="text-sm font-semibold text-slate-900">{item.period}</p>
+                    <p className="mt-1 text-sm text-slate-700">{item.result}</p>
+                  </div>
+                ))}
+              </div>
+            </article>
+          </div>
+
           <div className="mt-8 grid gap-5 lg:grid-cols-3">
             {t.program.cards.map((card) => (
-              <article key={card.level} className="relative overflow-hidden rounded-3xl border border-blue-100 bg-white p-6 shadow-xl shadow-blue-100/55">
+              <article key={card.level} className="relative h-full overflow-hidden rounded-3xl border border-blue-100 bg-white p-6 shadow-xl shadow-blue-100/55">
                 <div className="absolute right-0 top-0 h-20 w-20 rounded-bl-[1.7rem] bg-gradient-to-br from-blue-600/15 to-sky-400/20" />
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-700">{card.step}</p>
                 <div className="mt-2 flex items-center justify-between">
@@ -1509,6 +1850,16 @@ export default function Home() {
                 {card.ribbon ? (
                   <p className="mt-3 rounded-lg bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-900">{card.ribbon}</p>
                 ) : null}
+                <p className="mt-4 text-xs font-semibold uppercase tracking-[0.11em] text-blue-700">{t.program.topicsTitle}</p>
+                <ul className="mt-2 space-y-2">
+                  {card.topics.map((topic) => (
+                    <li key={topic} className="flex gap-2 text-sm text-slate-700">
+                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-sky-500" />
+                      <span>{topic}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-4 text-xs font-semibold uppercase tracking-[0.11em] text-blue-700">{t.program.outcomesTitle}</p>
                 <ul className="mt-4 space-y-2.5">
                   {card.outcomes.map((outcome) => (
                     <li key={outcome} className="flex gap-2 text-sm text-slate-700">
@@ -1522,36 +1873,92 @@ export default function Home() {
           </div>
         </section>
 
+        <section className="fade-up mt-20 rounded-[2rem] border border-blue-100 bg-white p-6 shadow-xl shadow-blue-100/55 md:p-8" style={{ animationDelay: "0.205s" }}>
+          <SectionHeader label={t.groups.label} title={t.groups.title} subtitle={t.groups.subtitle} />
+          <div className="mt-6 flex flex-wrap gap-2">
+            {t.groups.proof.map((line) => (
+              <span key={line} className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800">
+                {renderIcon("users", "h-3.5 w-3.5")}
+                {line}
+              </span>
+            ))}
+          </div>
+          <div className="mt-7 grid gap-4 md:grid-cols-3">
+            {t.groups.cards.map((group) => (
+              <article key={`${group.level}-${group.start}`} className="h-full rounded-2xl border border-blue-100 bg-gradient-to-b from-white to-blue-50/40 p-5 shadow-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-[0.08em] ${
+                      group.almostFull ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900"
+                    }`}
+                  >
+                    {group.status}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">{group.level}</span>
+                </div>
+                <div className="mt-4 space-y-2 text-sm text-slate-700">
+                  <p className="flex items-center gap-2">
+                    {renderIcon("calendar", "h-4 w-4 text-blue-700")}
+                    {group.start}
+                  </p>
+                  <p className="flex items-center gap-2">
+                    {renderIcon("clock", "h-4 w-4 text-blue-700")}
+                    {group.schedule}
+                  </p>
+                  <p className="flex items-center gap-2">
+                    {renderIcon("online", "h-4 w-4 text-blue-700")}
+                    {group.format}
+                  </p>
+                </div>
+                <p
+                  className={`mt-4 inline-flex rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] ${
+                    group.almostFull ? "bg-rose-100 text-rose-800" : "bg-blue-100 text-blue-800"
+                  }`}
+                >
+                  {group.seats}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
         <section id="mini-courses" className="fade-up mt-20" style={{ animationDelay: "0.22s" }}>
           <SectionHeader label={t.mini.label} title={t.mini.title} />
 
           <div className="mt-8 rounded-3xl border border-blue-100 bg-white p-4 shadow-xl shadow-blue-100/55 md:p-6">
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.11em] text-slate-500">{t.mini.swipeHint}</p>
+              <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => goToSlide(carouselIndex - 1)}
                 disabled={carouselIndex === 0}
-                className="rounded-full border border-blue-200 bg-white px-3 py-1.5 text-sm text-slate-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label={t.mini.prev}
               >
-                {t.mini.prev}
+                <span aria-hidden>←</span> {t.mini.prev}
               </button>
               <button
                 type="button"
                 onClick={() => goToSlide(carouselIndex + 1)}
                 disabled={carouselIndex >= maxCarouselIndex}
-                className="rounded-full border border-blue-200 bg-white px-3 py-1.5 text-sm text-slate-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label={t.mini.next}
               >
-                {t.mini.next}
+                {t.mini.next} <span aria-hidden>→</span>
               </button>
+            </div>
             </div>
 
             <div
-              className="mt-4 overflow-hidden"
+              className="mt-4 select-none overflow-hidden touch-pan-y"
               tabIndex={0}
               role="region"
               aria-label="mini-courses-carousel"
+              onTouchStart={handleMiniTouchStart}
+              onTouchMove={handleMiniTouchMove}
+              onTouchEnd={handleMiniTouchEnd}
+              onTouchCancel={handleMiniTouchEnd}
               onKeyDown={(event) => {
                 if (event.key === "ArrowRight") {
                   event.preventDefault();
@@ -1564,12 +1971,12 @@ export default function Home() {
               }}
             >
               <div
-                className="flex transition-transform duration-500 ease-out"
+                className="flex will-change-transform transition-transform duration-500 ease-out"
                 style={{ transform: `translateX(-${(carouselIndex * 100) / cardsPerView}%)` }}
               >
                 {t.mini.courses.map((course) => (
                   <div key={course.title} className="shrink-0 p-2" style={{ flex: `0 0 ${100 / cardsPerView}%` }}>
-                    <article className="h-full rounded-3xl bg-gradient-to-br from-[#0b327f] via-[#1a57c4] to-[#2f90ff] p-6 text-white shadow-xl shadow-blue-300/35">
+                    <article className="h-full rounded-3xl bg-gradient-to-br from-[#0b327f] via-[#1a57c4] to-[#2f90ff] p-6 text-white shadow-lg shadow-blue-300/35">
                       <div className="flex items-start justify-between gap-3">
                         <div className="rounded-lg border border-white/30 bg-white/10 p-2 text-white">
                           {renderIcon(course.icon)}
@@ -1579,16 +1986,16 @@ export default function Home() {
                       <h3 className="mt-4 text-xl leading-snug">{course.title}</h3>
                       <div className="mt-4 space-y-2 text-sm text-blue-100">
                         <p>
-                          <span className="font-semibold text-white">Для чого:</span> {course.purpose}
+                          <span className="font-semibold text-white">{t.mini.forWho}:</span> {course.purpose}
                         </p>
                         <p>
-                          <span className="font-semibold text-white">Результат:</span> {course.result}
+                          <span className="font-semibold text-white">{t.mini.resultLabel}:</span> {course.result}
                         </p>
                         <p>
-                          <span className="font-semibold text-white">Формат:</span> {course.format}
+                          <span className="font-semibold text-white">{t.mini.formatLabel}:</span> {course.format}
                         </p>
                         <p>
-                          <span className="font-semibold text-white">Тривалість:</span> {course.duration}
+                          <span className="font-semibold text-white">{t.mini.durationLabel}:</span> {course.duration}
                         </p>
                       </div>
                     </article>
@@ -1610,6 +2017,21 @@ export default function Home() {
                 />
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="fade-up mt-20 rounded-[2rem] border border-blue-100 bg-gradient-to-br from-white via-blue-50/45 to-white p-6 shadow-xl shadow-blue-100/55 md:p-8" style={{ animationDelay: "0.24s" }}>
+          <SectionHeader label={t.testimonials.label} title={t.testimonials.title} subtitle={t.testimonials.subtitle} />
+          <div className="mt-7 grid gap-4 md:grid-cols-3">
+            {t.testimonials.cards.map((item) => (
+              <article key={item.tag} className="h-full rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.11em] text-blue-700">{item.tag}</p>
+                <p className="mt-3 text-sm text-slate-700">{item.quote}</p>
+                <p className="mt-4 inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+                  {item.meta}
+                </p>
+              </article>
+            ))}
           </div>
         </section>
 
@@ -1647,7 +2069,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="format" className="fade-up mt-20 grid gap-6 lg:grid-cols-2" style={{ animationDelay: "0.28s" }}>
+        <section id="format" className="fade-up mt-20" style={{ animationDelay: "0.28s" }}>
           <article className="rounded-3xl border border-blue-100 bg-white p-7 shadow-xl shadow-blue-100/60 md:p-9">
             <SectionHeader label={t.format.label} title={t.format.title} />
             <div className="mt-6 space-y-3">
@@ -1663,28 +2085,6 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          </article>
-
-          <article className="rounded-3xl border border-blue-100 bg-white p-7 shadow-xl shadow-blue-100/60 md:p-9">
-            <SectionHeader label={t.founder.label} title={t.founder.title} />
-            <div className="mt-6 flex items-center gap-4 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
-              <div className="grid h-14 w-14 place-content-center rounded-full bg-gradient-to-br from-blue-700 to-sky-500 text-lg font-bold text-white">
-                DfL
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900">Deutsch für Leben</p>
-                <p className="text-sm text-slate-600">Leipzig</p>
-              </div>
-            </div>
-            <p className="mt-4 text-slate-700">{t.founder.text}</p>
-            <ul className="mt-4 space-y-2 text-sm text-slate-700">
-              {t.founder.signals.map((signal) => (
-                <li key={signal} className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-blue-700" />
-                  {signal}
-                </li>
-              ))}
-            </ul>
           </article>
         </section>
 
@@ -1722,9 +2122,9 @@ export default function Home() {
               <p className="text-xs font-semibold uppercase tracking-[0.11em] text-blue-700">{t.contacts.city}</p>
               <p className="mt-2 font-medium text-slate-900">{t.contacts.cityValue}</p>
             </div>
-            <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.11em] text-blue-700">{t.contacts.response}</p>
-              <p className="mt-2 font-medium text-slate-900">{t.contacts.responseValue}</p>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.11em] text-amber-800">{t.contacts.response}</p>
+              <p className="mt-2 font-semibold text-amber-950">{t.contacts.responseValue}</p>
             </div>
           </div>
         </section>

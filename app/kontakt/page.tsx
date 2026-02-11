@@ -3,8 +3,7 @@ export default function KontaktPage() {
     <main className="mx-auto max-w-3xl px-5 py-12 sm:px-8">
       <h1 className="text-3xl text-slate-900">Kontakt</h1>
       <p className="mt-4 text-slate-600">
-        Для запиту щодо курсів напишіть у зручний канал. Відповідь:{" "}
-        <span className="font-medium text-slate-900">Antwort innerhalb von 24 Stunden</span>.
+        Office in Leipzig + online по всей Германии. Для подбора группы напишите в удобный канал.
       </p>
 
       <section className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -23,8 +22,13 @@ export default function KontaktPage() {
       </section>
 
       <section className="mt-4 rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-700">Місто</p>
-        <p className="mt-2 font-medium text-slate-900">Leipzig</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-700">Офис / формат</p>
+        <p className="mt-2 font-medium text-slate-900">Leipzig (центр) · online по Германии</p>
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-800">Время ответа</p>
+        <p className="mt-2 font-semibold text-amber-950">Ответим в течение 24 часов, обычно быстрее</p>
       </section>
     </main>
   );
