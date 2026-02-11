@@ -16,6 +16,7 @@ import { LandingIcon } from "./components/landing/icons";
 import { growthFlags, resolveHeroVariant, utmKeys, type HeroVariant } from "./config/growth";
 import { blogPosts } from "./data/blog-posts";
 import { landingContent, type Locale } from "./data/landing-content";
+import socialProofData from "./data/social-proof.json";
 
 declare global {
   interface Window {
@@ -46,6 +47,11 @@ export default function Home() {
   const content = landingContent[locale];
   const activeHeroVariant = growthFlags.enableHeroABTest ? heroVariant : "a";
   const blogTeasers = useMemo(() => blogPosts.slice(0, 3), []);
+  const realTestimonials = useMemo(
+    () => socialProofData.testimonials.filter((item) => !item.id.startsWith("beta")),
+    []
+  );
+  const showTestimonials = growthFlags.enableTestimonials && realTestimonials.length > 0;
 
   const trackWithContext = (eventName: string, payload: Record<string, unknown> = {}) => {
     trackEvent(eventName, {
@@ -292,6 +298,22 @@ export default function Home() {
         <Program content={content.program} />
         <Groups content={content.groups} pass={content.pass} />
         <Founder content={content.founder} />
+        {showTestimonials ? (
+          <section className="section-shell fade-up" style={{ animationDelay: "0.245s" }}>
+            <SectionHeader
+              label={locale === "ua" ? "Відгуки" : "Отзывы"}
+              title={locale === "ua" ? "Що кажуть студенти" : "Что говорят студенты"}
+            />
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              {realTestimonials.map((item) => (
+                <article key={item.id} className="card-neutral">
+                  <p className="text-xs font-semibold uppercase tracking-[0.11em] text-blue-700">{item.tag[locale]}</p>
+                  <p className="mt-2 text-sm text-slate-700">{item.quote[locale]}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
         <FAQ content={content.faq} />
 
         {growthFlags.enableBlogTeaser ? (
