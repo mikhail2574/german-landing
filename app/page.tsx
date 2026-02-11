@@ -1753,9 +1753,15 @@ export default function Home() {
                 <a href="#faq" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
                   {t.nav.faq}
                 </a>
-                <a href="#blog" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
-                  {i18n.blog.label}
-                </a>
+                {growthFlags.enableBlogTeaser ? (
+                  <a href="#blog" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
+                    {i18n.blog.label}
+                  </a>
+                ) : (
+                  <a href="/blog" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
+                    {i18n.blog.label}
+                  </a>
+                )}
                 <a href="#contacts" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
                   {t.nav.contacts}
                 </a>
