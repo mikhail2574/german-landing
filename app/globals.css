@@ -90,6 +90,31 @@ section[id] {
   scroll-margin-top: 8.5rem;
 }
 
+@layer components {
+  .section-shell {
+    @apply mt-20 rounded-[2rem] border border-blue-100 bg-white p-6 shadow-xl shadow-blue-100/55 md:p-8;
+  }
+
+  .card-neutral {
+    @apply rounded-2xl border border-blue-100 bg-white p-5 shadow-sm;
+  }
+
+  .card-primary {
+    @apply rounded-2xl border border-blue-100 bg-blue-50/60 p-5 shadow-sm;
+  }
+
+  .card-highlight {
+    @apply rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm;
+  }
+}
+
+.integration-pass {
+  background-image:
+    linear-gradient(transparent 96%, rgba(37, 99, 235, 0.04) 96%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.9), rgba(239, 246, 255, 0.95));
+  background-size: 100% 18px, 100% 100%;
+}
+
 .mobile-sticky-cta {
   position: fixed;
   left: 0;
