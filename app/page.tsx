@@ -3,6 +3,11 @@
 import Image from "next/image";
 import type { FormEvent, ReactNode, TouchEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { growthFlags, heroOfferConfig, resolveHeroVariant, utmKeys, type HeroVariant } from "./config/growth";
+import { blogCategories, blogPosts } from "./data/blog-posts";
+import { followUpTemplates } from "./data/follow-up-templates";
+import socialProofData from "./data/social-proof.json";
+import TestimonialsSection from "./components/TestimonialsSection";
 
 type Locale = "ua" | "ru";
 
@@ -1272,10 +1277,12 @@ function trackEvent(eventName: string, payload: Record<string, unknown>) {
 
 export default function Home() {
   const [locale, setLocale] = useState<Locale>("ua");
+  const [heroVariant, setHeroVariant] = useState<HeroVariant>(growthFlags.defaultHeroVariant);
   const [level, setLevel] = useState("a1");
   const [format, setFormat] = useState("online");
   const [time, setTime] = useState("morning");
   const [city, setCity] = useState("");
+  const [utmData, setUtmData] = useState<Record<string, string>>({});
 
   const [leadEmail, setLeadEmail] = useState("");
   const [leadTelegram, setLeadTelegram] = useState("");
@@ -1294,9 +1301,106 @@ export default function Home() {
   const touchStartX = useRef<number | null>(null);
   const touchDeltaX = useRef(0);
 
+  const [waitlistTrack, setWaitlistTrack] = useState("kids");
+  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistTelegram, setWaitlistTelegram] = useState("");
+  const [waitlistError, setWaitlistError] = useState("");
+  const [waitlistSuccess, setWaitlistSuccess] = useState(false);
+
   const t = copy[locale];
+  const activeHeroVariant = growthFlags.enableHeroABTest ? heroVariant : "a";
+  const heroOffer = heroOfferConfig[locale][activeHeroVariant];
   const maxCarouselIndex = Math.max(0, t.mini.courses.length - cardsPerView);
   const dots = useMemo(() => Array.from({ length: maxCarouselIndex + 1 }, (_, idx) => idx), [maxCarouselIndex]);
+  const blogTeasers = blogPosts.slice(0, 4);
+  const testimonialCards = socialProofData.testimonials;
+  const followUpSequence = followUpTemplates[locale];
+
+  const i18n = locale === "ua"
+    ? {
+        blog: {
+          label: "Блог / корисне",
+          title: "Почали SEO-рух: 10 шаблонних статей під пошук у Німеччині",
+          subtitle: "Категорії: Jobcenter, Arzt, DTZ, Alltag, Arbeit, Briefe.",
+          readMore: "Читати статтю",
+          all: "Перейти до блогу"
+        },
+        testimonials: {
+          sourceHint: "Дані секції підтягуються з JSON і готові до заміни на CMS.",
+          reviewTitle: "Залишити відгук (не публікується автоматично)",
+          reviewName: "Ім'я",
+          reviewContact: "Контакт (E-Mail або Telegram)",
+          reviewText: "Ваш feedback",
+          reviewConsent: "Даю згоду на ручну обробку відгуку командою школи.",
+          reviewSubmit: "Відправити відгук",
+          reviewSuccess: "Дякуємо. Відгук збережено для ручної модерації.",
+          reviewError: "Заповніть текст відгуку і підтвердьте згоду.",
+          cohortTitle: "Результати потоку",
+          cohortPending: "Опублікуємо цифри тільки після перевірки фактичних даних."
+        },
+        leadFlow: {
+          title: "Що далі після чекліста",
+          text: "Надішлемо чекліст, а потім короткий маршрут до групи. Зараз у найближчому потоці залишилось 4 місця.",
+          followUpTitle: "Шаблони follow-up повідомлень (email/telegram)"
+        },
+        waitlist: {
+          label: "Лист очікування",
+          title: "Дитячий курс і B2 — тільки в waitlist, щоб не розмивати фокус A1/B1",
+          subtitle: "Збираємо інтерес, не продаємо те, що ще не запущено.",
+          track: "Напрям",
+          email: "E-Mail",
+          telegram: "Telegram (опціонально)",
+          submit: "Приєднатися до waitlist",
+          success: "Готово. Ми повідомимо першими, коли відкриємо набір.",
+          error: "Вкажіть коректний E-Mail для листа очікування.",
+          options: [
+            { id: "kids", label: "Дитячий курс" },
+            { id: "b2", label: "B2" }
+          ]
+        }
+      }
+    : {
+        blog: {
+          label: "Блог / полезное",
+          title: "Запущен SEO-движок: 10 шаблонных статей под поисковый спрос",
+          subtitle: "Категории: Jobcenter, Arzt, DTZ, Alltag, Arbeit, Briefe.",
+          readMore: "Читать статью",
+          all: "Перейти в блог"
+        },
+        testimonials: {
+          sourceHint: "Данные секции подтягиваются из JSON и готовы к замене на CMS.",
+          reviewTitle: "Оставить отзыв (без автопубликации)",
+          reviewName: "Имя",
+          reviewContact: "Контакт (E-Mail или Telegram)",
+          reviewText: "Ваш feedback",
+          reviewConsent: "Даю согласие на ручную обработку отзыва командой школы.",
+          reviewSubmit: "Отправить отзыв",
+          reviewSuccess: "Спасибо. Отзыв сохранен для ручной модерации.",
+          reviewError: "Заполните текст отзыва и подтвердите согласие.",
+          cohortTitle: "Результаты потока",
+          cohortPending: "Покажем цифры только после верификации фактических данных."
+        },
+        leadFlow: {
+          title: "Что дальше после чеклиста",
+          text: "Отправим чеклист, затем короткий маршрут к группе. В ближайшем потоке сейчас осталось 4 места.",
+          followUpTitle: "Шаблоны follow-up сообщений (email/telegram)"
+        },
+        waitlist: {
+          label: "Лист ожидания",
+          title: "Детский курс и B2 — только в waitlist, без отвлечения от A1/B1",
+          subtitle: "Собираем интерес и честно сообщим о запуске, когда будем готовы.",
+          track: "Направление",
+          email: "E-Mail",
+          telegram: "Telegram (опционально)",
+          submit: "Встать в waitlist",
+          success: "Готово. Сообщим первыми, когда откроем набор.",
+          error: "Укажите корректный E-Mail для листа ожидания.",
+          options: [
+            { id: "kids", label: "Детский курс" },
+            { id: "b2", label: "B2" }
+          ]
+        }
+      };
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -1304,15 +1408,51 @@ export default function Home() {
     if (langParam === "ru" || langParam === "ua") {
       setLocale(langParam);
     }
+
+    const requestedHeroVariant = resolveHeroVariant(url.searchParams.get("hero"));
+    if (growthFlags.enableHeroABTest && requestedHeroVariant) {
+      setHeroVariant(requestedHeroVariant);
+    }
+
+    const storageKey = "dfl_utm_v1";
+    const collected: Record<string, string> = {};
+
+    for (const key of utmKeys) {
+      const value = url.searchParams.get(key);
+      if (value) {
+        collected[key] = value;
+      }
+    }
+
+    const persistedRaw = window.localStorage.getItem(storageKey);
+    let persisted: Record<string, string> = {};
+    if (persistedRaw) {
+      try {
+        persisted = JSON.parse(persistedRaw) as Record<string, string>;
+      } catch {
+        persisted = {};
+      }
+    }
+
+    const merged = { ...persisted, ...collected };
+    if (Object.keys(merged).length > 0) {
+      setUtmData(merged);
+      window.localStorage.setItem(storageKey, JSON.stringify(merged));
+    }
   }, []);
 
   useEffect(() => {
     document.documentElement.lang = locale === "ua" ? "uk" : "ru";
     const url = new URL(window.location.href);
     url.searchParams.set("lang", locale);
+    if (growthFlags.enableHeroABTest) {
+      url.searchParams.set("hero", activeHeroVariant);
+    } else {
+      url.searchParams.delete("hero");
+    }
     window.history.replaceState(null, "", `${url.pathname}?${url.searchParams.toString()}${url.hash}`);
     setCarouselIndex(0);
-  }, [locale]);
+  }, [locale, activeHeroVariant]);
 
   useEffect(() => {
     const meta = localeMeta[locale];
@@ -1376,6 +1516,14 @@ export default function Home() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    trackEvent("view_hero", {
+      locale,
+      hero_variant: activeHeroVariant,
+      ...utmData
+    });
+  }, [locale, activeHeroVariant, utmData]);
+
   const goToSlide = (index: number) => {
     setCarouselIndex(Math.max(0, Math.min(index, maxCarouselIndex)));
   };
@@ -1403,6 +1551,19 @@ export default function Home() {
     touchStartX.current = null;
     touchDeltaX.current = 0;
   };
+
+  const handleCtaClick = (ctaId: string, placement: string) => {
+    trackEvent("click_cta", {
+      locale,
+      hero_variant: activeHeroVariant,
+      cta_id: ctaId,
+      placement,
+      ...utmData
+    });
+  };
+
+  const renderUtmHiddenFields = () =>
+    Object.entries(utmData).map(([key, value]) => <input key={key} type="hidden" name={key} value={value} />);
 
   const faqJsonLd = useMemo(
     () =>
@@ -1443,10 +1604,18 @@ export default function Home() {
     setLeadSuccess(true);
     setLeadEmail("");
     setLeadTelegram("");
+    trackEvent("submit_checklist", {
+      locale,
+      hero_variant: activeHeroVariant,
+      hasTelegram: Boolean(leadTelegram.trim()),
+      source: "checklist",
+      ...utmData
+    });
     trackEvent("lead_checklist_submit", {
       locale,
       hasTelegram: Boolean(leadTelegram.trim()),
-      source: "checklist"
+      source: "checklist",
+      ...utmData
     });
   };
 
@@ -1479,6 +1648,18 @@ export default function Home() {
     setAppEmail("");
     setAppTelegram("");
     setAppConsent(false);
+    trackEvent("submit_lead", {
+      locale,
+      hero_variant: activeHeroVariant,
+      level: levelLabel,
+      format: formatLabel,
+      time: timeLabel,
+      city,
+      hasEmail: Boolean(email),
+      hasTelegram: Boolean(telegram),
+      source: "application",
+      ...utmData
+    });
 
     trackEvent("lead_application_submit", {
       locale,
@@ -1488,7 +1669,30 @@ export default function Home() {
       city,
       hasEmail: Boolean(email),
       hasTelegram: Boolean(telegram),
-      source: "application"
+      source: "application",
+      ...utmData
+    });
+  };
+
+  const handleWaitlistSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const email = waitlistEmail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setWaitlistError(i18n.waitlist.error);
+      setWaitlistSuccess(false);
+      return;
+    }
+
+    setWaitlistError("");
+    setWaitlistSuccess(true);
+    setWaitlistEmail("");
+    setWaitlistTelegram("");
+
+    trackEvent("submit_waitlist", {
+      locale,
+      track: waitlistTrack,
+      hasTelegram: Boolean(waitlistTelegram.trim()),
+      ...utmData
     });
   };
 
@@ -1515,7 +1719,11 @@ export default function Home() {
               {t.announcement.open} • {t.announcement.startLabel} {START_DATE} • {seatsText}
             </p>
           </div>
-          <a href="#application" className="rounded-full bg-white px-4 py-1.5 text-xs font-bold text-blue-900 transition hover:bg-blue-50">
+          <a
+            href="#application"
+            onClick={() => handleCtaClick("announcement_apply", "announcement_bar")}
+            className="rounded-full bg-white px-4 py-1.5 text-xs font-bold text-blue-900 transition hover:bg-blue-50"
+          >
             {t.announcement.cta}
           </a>
         </div>
@@ -1545,8 +1753,17 @@ export default function Home() {
                 <a href="#faq" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
                   {t.nav.faq}
                 </a>
+                <a href="#blog" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
+                  {i18n.blog.label}
+                </a>
                 <a href="#contacts" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
                   {t.nav.contacts}
+                </a>
+                <a href="/a1" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
+                  A1
+                </a>
+                <a href="/b1-dtz" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
+                  B1-DTZ
                 </a>
               </div>
 
@@ -1577,7 +1794,11 @@ export default function Home() {
                     RU
                   </button>
                 </div>
-                <a href="#application" className="rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+                <a
+                  href="#application"
+                  onClick={() => handleCtaClick("nav_apply", "navigation")}
+                  className="rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+                >
                   {t.nav.apply}
                 </a>
               </div>
@@ -1589,15 +1810,21 @@ export default function Home() {
               <p className="inline-flex items-center rounded-full bg-blue-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.13em] text-blue-700 ring-1 ring-blue-100">
                 {t.hero.badge}
               </p>
-              <h1 className="mt-6 max-w-[22ch] text-4xl leading-tight text-slate-950 md:text-5xl md:leading-[1.08]">{t.hero.title}</h1>
-              <p className="mt-6 max-w-[68ch] text-lg leading-relaxed text-slate-600 md:text-xl">{t.hero.subtitle}</p>
+              {growthFlags.enableHeroABTest ? (
+                <p className="mt-3 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800">
+                  A/B: variant {activeHeroVariant.toUpperCase()}
+                </p>
+              ) : null}
+              <h1 className="mt-6 max-w-[22ch] text-4xl leading-tight text-slate-950 md:text-5xl md:leading-[1.08]">{heroOffer.title}</h1>
+              <p className="mt-6 max-w-[68ch] text-lg leading-relaxed text-slate-600 md:text-xl">{heroOffer.subtitle}</p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 <a
                   href="#application"
+                  onClick={() => handleCtaClick("hero_primary", "hero")}
                   className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-700 to-sky-500 px-7 py-3 text-sm font-semibold text-white transition hover:from-blue-800 hover:to-sky-600"
                 >
-                  {t.hero.primaryCta}
+                  {heroOffer.primaryCta}
                 </a>
                 <span className="inline-flex items-center justify-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-rose-700">
                   {renderIcon("alarm", "h-4 w-4")}
@@ -1605,9 +1832,10 @@ export default function Home() {
                 </span>
                 <a
                   href="#checklist"
+                  onClick={() => handleCtaClick("hero_secondary", "hero")}
                   className="inline-flex items-center justify-center rounded-xl border border-blue-200 bg-white px-6 py-3 text-sm font-semibold text-blue-800 transition hover:bg-blue-50"
                 >
-                  {t.hero.secondaryCta}
+                  {heroOffer.secondaryCta}
                 </a>
               </div>
 
@@ -1672,6 +1900,7 @@ export default function Home() {
             </div>
 
             <form onSubmit={handleLeadSubmit} noValidate className="rounded-2xl border border-amber-200 bg-white p-5">
+              {renderUtmHiddenFields()}
               <label className="text-sm font-semibold text-slate-700">
                 {t.lead.email}
                 <input
@@ -1711,8 +1940,24 @@ export default function Home() {
               ) : null}
               {leadSuccess ? (
                 <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                  <p className="text-sm font-medium text-emerald-800">{t.lead.success}</p>
-                  <a href="#application" className="mt-2 inline-flex text-sm font-semibold text-emerald-900 underline underline-offset-2">
+                  <p className="text-sm font-semibold text-emerald-900">{i18n.leadFlow.title}</p>
+                  <p className="mt-1 text-sm text-emerald-800">{i18n.leadFlow.text}</p>
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-[0.1em] text-emerald-700">{i18n.leadFlow.followUpTitle}</p>
+                  <ul className="mt-2 space-y-1 text-sm text-emerald-900">
+                    {followUpSequence.map((item) => (
+                      <li key={item.id} className="flex gap-2">
+                        <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-700" />
+                        <span>
+                          {item.day} ({item.channel}): {item.subject}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href="#application"
+                    onClick={() => handleCtaClick("checklist_to_application", "checklist_success")}
+                    className="mt-3 inline-flex text-sm font-semibold text-emerald-900 underline underline-offset-2"
+                  >
                     {t.lead.successCta}
                   </a>
                 </div>
@@ -1804,6 +2049,34 @@ export default function Home() {
             ))}
           </div>
         </section>
+
+        {growthFlags.enableBlogTeaser ? (
+          <section id="blog" className="fade-up mt-20 rounded-[2rem] border border-blue-100 bg-white p-6 shadow-xl shadow-blue-100/55 md:p-8" style={{ animationDelay: "0.175s" }}>
+            <SectionHeader label={i18n.blog.label} title={i18n.blog.title} subtitle={i18n.blog.subtitle} />
+            <div className="mt-5 flex flex-wrap gap-2">
+              {Object.entries(blogCategories).map(([key, category]) => (
+                <a key={key} href={`/blog/category/${key}`} className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800 transition hover:bg-blue-100">
+                  {category.label}
+                </a>
+              ))}
+            </div>
+            <div className="mt-7 grid gap-4 md:grid-cols-2">
+              {blogTeasers.map((post) => (
+                <article key={post.slug} className="h-full rounded-2xl border border-blue-100 bg-blue-50/35 p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.11em] text-blue-700">{blogCategories[post.category].label}</p>
+                  <h3 className="mt-2 text-lg text-slate-900">{post.title}</h3>
+                  <p className="mt-2 text-sm text-slate-600">{post.excerpt}</p>
+                  <a href={`/blog/${post.slug}`} className="mt-3 inline-flex text-sm font-semibold text-blue-800 underline underline-offset-2">
+                    {i18n.blog.readMore}
+                  </a>
+                </article>
+              ))}
+            </div>
+            <a href="/blog" className="mt-5 inline-flex rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white">
+              {i18n.blog.all}
+            </a>
+          </section>
+        ) : null}
 
         <section id="program" className="fade-up mt-20" style={{ animationDelay: "0.19s" }}>
           <SectionHeader label={t.program.label} title={t.program.title} subtitle={t.program.subtitle} />
@@ -2020,20 +2293,41 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="fade-up mt-20 rounded-[2rem] border border-blue-100 bg-gradient-to-br from-white via-blue-50/45 to-white p-6 shadow-xl shadow-blue-100/55 md:p-8" style={{ animationDelay: "0.24s" }}>
-          <SectionHeader label={t.testimonials.label} title={t.testimonials.title} subtitle={t.testimonials.subtitle} />
-          <div className="mt-7 grid gap-4 md:grid-cols-3">
-            {t.testimonials.cards.map((item) => (
-              <article key={item.tag} className="h-full rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.11em] text-blue-700">{item.tag}</p>
-                <p className="mt-3 text-sm text-slate-700">{item.quote}</p>
-                <p className="mt-4 inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
-                  {item.meta}
-                </p>
-              </article>
-            ))}
-          </div>
-        </section>
+        <TestimonialsSection
+          locale={locale}
+          label={t.testimonials.label}
+          title={t.testimonials.title}
+          subtitle={t.testimonials.subtitle}
+          sourceHint={i18n.testimonials.sourceHint}
+          testimonials={testimonialCards}
+          cohortResults={socialProofData.cohortResults}
+          cohortTitle={i18n.testimonials.cohortTitle}
+          cohortPending={i18n.testimonials.cohortPending}
+          review={{
+            enabled: growthFlags.enableReviewIntake,
+            title: i18n.testimonials.reviewTitle,
+            nameLabel: i18n.testimonials.reviewName,
+            contactLabel: i18n.testimonials.reviewContact,
+            textLabel: i18n.testimonials.reviewText,
+            consentLabel: i18n.testimonials.reviewConsent,
+            submitLabel: i18n.testimonials.reviewSubmit,
+            successLabel: i18n.testimonials.reviewSuccess,
+            defaultError: i18n.testimonials.reviewError
+          }}
+          utmData={utmData}
+          onSubmitReview={(payload) => {
+            if (!payload.text.trim() || !payload.consent) {
+              return { ok: false, error: i18n.testimonials.reviewError };
+            }
+            trackEvent("submit_review_intake", {
+              locale,
+              hasContact: Boolean(payload.contact.trim()),
+              source: "social_proof_section",
+              ...utmData
+            });
+            return { ok: true };
+          }}
+        />
 
         <section className="fade-up mt-20 rounded-[2rem] border border-blue-100 bg-white p-6 shadow-xl shadow-blue-100/60 md:p-8" style={{ animationDelay: "0.25s" }}>
           <SectionHeader label={t.visuals.label} title={t.visuals.title} />
@@ -2178,10 +2472,12 @@ export default function Home() {
             </div>
           ) : (
             <form onSubmit={handleApplicationSubmit} noValidate className="mt-7 grid gap-4 md:grid-cols-2">
+              {renderUtmHiddenFields()}
               <input type="hidden" name="selected_level" value={levelLabel} />
               <input type="hidden" name="selected_format" value={formatLabel} />
               <input type="hidden" name="selected_time" value={timeLabel} />
               <input type="hidden" name="selected_city" value={city} />
+              <input type="hidden" name="hero_variant" value={activeHeroVariant} />
 
               <label className="text-sm text-blue-100">
                 {t.form.fields.telegram}
@@ -2274,6 +2570,62 @@ export default function Home() {
           )}
         </section>
 
+        {growthFlags.enableWaitlist ? (
+          <section className="fade-up mt-20 rounded-[2rem] border border-blue-100 bg-white p-6 shadow-xl shadow-blue-100/55 md:p-8" style={{ animationDelay: "0.39s" }}>
+            <SectionHeader label={i18n.waitlist.label} title={i18n.waitlist.title} subtitle={i18n.waitlist.subtitle} />
+            {waitlistSuccess ? (
+              <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900" role="status">
+                {i18n.waitlist.success}
+              </div>
+            ) : (
+              <form onSubmit={handleWaitlistSubmit} className="mt-5 grid gap-4 md:grid-cols-2">
+                {renderUtmHiddenFields()}
+                <label className="text-sm text-slate-700">
+                  {i18n.waitlist.track}
+                  <select
+                    value={waitlistTrack}
+                    onChange={(event) => setWaitlistTrack(event.target.value)}
+                    className="mt-2 w-full rounded-xl border border-blue-200 bg-white px-3 py-2.5 text-slate-900 outline-none focus:border-blue-400"
+                  >
+                    {i18n.waitlist.options.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-sm text-slate-700">
+                  {i18n.waitlist.email}
+                  <input
+                    type="email"
+                    value={waitlistEmail}
+                    onChange={(event) => {
+                      setWaitlistEmail(event.target.value);
+                      if (waitlistError) {
+                        setWaitlistError("");
+                      }
+                    }}
+                    className="mt-2 w-full rounded-xl border border-blue-200 bg-white px-3 py-2.5 text-slate-900 outline-none focus:border-blue-400"
+                  />
+                </label>
+                <label className="text-sm text-slate-700 md:col-span-2">
+                  {i18n.waitlist.telegram}
+                  <input
+                    type="text"
+                    value={waitlistTelegram}
+                    onChange={(event) => setWaitlistTelegram(event.target.value)}
+                    className="mt-2 w-full rounded-xl border border-blue-200 bg-white px-3 py-2.5 text-slate-900 outline-none focus:border-blue-400"
+                  />
+                </label>
+                {waitlistError ? <p className="text-sm text-red-600 md:col-span-2">{waitlistError}</p> : null}
+                <button type="submit" className="rounded-xl bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white md:col-span-2">
+                  {i18n.waitlist.submit}
+                </button>
+              </form>
+            )}
+          </section>
+        ) : null}
+
         <footer className="fade-up mt-10 pb-4" style={{ animationDelay: "0.4s" }}>
           <p className="text-center text-sm text-slate-600">{t.footer.disclaimer}</p>
           <p className="mt-2 text-center text-sm text-slate-600">{t.footer.contactLine}</p>
@@ -2299,15 +2651,17 @@ export default function Home() {
         <div className="grid grid-cols-2 gap-2">
           <a
             href="#application"
+            onClick={() => handleCtaClick("mobile_apply", "mobile_sticky")}
             className="inline-flex items-center justify-center rounded-xl bg-blue-700 px-4 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-blue-400/30"
           >
             {t.nav.apply}
           </a>
           <a
             href="#checklist"
+            onClick={() => handleCtaClick("mobile_checklist", "mobile_sticky")}
             className="inline-flex items-center justify-center rounded-xl border border-blue-200 bg-white px-4 py-3 text-center text-sm font-semibold text-blue-900"
           >
-            {t.hero.secondaryCta}
+            {heroOffer.secondaryCta}
           </a>
         </div>
       </div>
