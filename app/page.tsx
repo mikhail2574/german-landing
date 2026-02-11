@@ -63,7 +63,7 @@ const copy = {
       open: "Набір A1 відкрито",
       startLabel: "Старт:",
       seatsLabel: "Залишилось",
-      seatsSuffix: "місць",
+      seatsSuffix: "місця",
       alarmBadge: "Терміново",
       cta: "Записатися"
     },
@@ -1056,13 +1056,25 @@ export default function Home() {
 
   const [cardsPerView, setCardsPerView] = useState(1);
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [showMobileSticky, setShowMobileSticky] = useState(false);
 
   const t = copy[locale];
   const maxCarouselIndex = Math.max(0, t.mini.courses.length - cardsPerView);
   const dots = useMemo(() => Array.from({ length: maxCarouselIndex + 1 }, (_, idx) => idx), [maxCarouselIndex]);
 
   useEffect(() => {
+    const url = new URL(window.location.href);
+    const langParam = url.searchParams.get("lang");
+    if (langParam === "ru" || langParam === "ua") {
+      setLocale(langParam);
+    }
+  }, []);
+
+  useEffect(() => {
     document.documentElement.lang = locale === "ua" ? "uk" : "ru";
+    const url = new URL(window.location.href);
+    url.searchParams.set("lang", locale);
+    window.history.replaceState(null, "", `${url.pathname}?${url.searchParams.toString()}${url.hash}`);
     setCarouselIndex(0);
   }, [locale]);
 
@@ -1088,8 +1100,14 @@ export default function Home() {
     upsertMeta("property", "og:title", meta.title);
     upsertMeta("property", "og:description", meta.description);
     upsertMeta("property", "og:locale", meta.ogLocale);
+    upsertMeta("property", "og:type", "website");
+    upsertMeta("property", "og:site_name", "Deutsch für Leben");
+    upsertMeta("property", "og:image", "/images/leipzig-illustration.svg");
+    upsertMeta("property", "og:url", window.location.href);
+    upsertMeta("name", "twitter:card", "summary_large_image");
     upsertMeta("name", "twitter:title", meta.title);
     upsertMeta("name", "twitter:description", meta.description);
+    upsertMeta("name", "twitter:image", "/images/leipzig-illustration.svg");
   }, [locale]);
 
   useEffect(() => {
@@ -1111,6 +1129,16 @@ export default function Home() {
   useEffect(() => {
     setCarouselIndex((prev) => Math.min(prev, maxCarouselIndex));
   }, [maxCarouselIndex]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setShowMobileSticky(window.scrollY > 280);
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const goToSlide = (index: number) => {
     setCarouselIndex(Math.max(0, Math.min(index, maxCarouselIndex)));
@@ -1189,19 +1217,25 @@ export default function Home() {
   const levelLabel = t.form.levelOptions.find((item) => item.id === level)?.label ?? "";
   const formatLabel = t.form.formatOptions.find((item) => item.id === format)?.label ?? "";
   const timeLabel = t.form.timeOptions.find((item) => item.id === time)?.label ?? "";
-  const seatsText = SEATS_LEFT ? `${t.announcement.seatsLabel} ${SEATS_LEFT} ${t.announcement.seatsSuffix}` : null;
+  const seatsText = `${t.announcement.seatsLabel} ${SEATS_LEFT} ${t.announcement.seatsSuffix}`;
+  const consentAndWord = locale === "ua" ? "та" : "и";
 
   return (
-    <main className="relative isolate overflow-x-clip pb-24 md:pb-16">
-      <div className="pointer-events-none absolute -top-32 right-[-200px] h-[520px] w-[520px] rounded-full bg-blue-300/40 blur-3xl" />
-      <div className="pointer-events-none absolute left-[-220px] top-[260px] h-[460px] w-[460px] rounded-full bg-sky-200/40 blur-3xl" />
+    <main className="relative isolate overflow-x-clip pb-36 md:pb-16">
+      <div className="pointer-events-none absolute -top-32 right-[-200px] hidden h-[520px] w-[520px] rounded-full bg-blue-300/40 blur-3xl md:block" />
+      <div className="pointer-events-none absolute left-[-220px] top-[260px] hidden h-[460px] w-[460px] rounded-full bg-sky-200/40 blur-3xl md:block" />
 
       <div className="sticky top-0 z-[80] border-b border-blue-300/30 bg-gradient-to-r from-[#0b2c72] via-[#1346ae] to-[#1f79e0] text-white shadow-lg shadow-blue-500/20">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm sm:px-8 lg:px-10">
-          <p className="font-semibold">
-            {t.announcement.open} · {t.announcement.startLabel} {START_DATE}
-            {seatsText ? ` · ${seatsText}` : ""}
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-300 px-2.5 py-1 text-xs font-bold uppercase tracking-[0.08em] text-amber-950">
+              {renderIcon("alarm", "h-3.5 w-3.5")}
+              {t.announcement.alarmBadge}
+            </span>
+            <p className="font-semibold">
+              {t.announcement.open} • {t.announcement.startLabel} {START_DATE} • {seatsText}
+            </p>
+          </div>
           <a href="#application" className="rounded-full bg-white px-4 py-1.5 text-xs font-bold text-blue-900 transition hover:bg-blue-50">
             {t.announcement.cta}
           </a>
@@ -1271,7 +1305,7 @@ export default function Home() {
             </div>
           </nav>
 
-          <section className="mt-6 grid gap-6 rounded-[2rem] border border-blue-100 bg-white/[0.88] p-6 shadow-2xl shadow-blue-200/[0.42] backdrop-blur md:grid-cols-[1.15fr_0.85fr] md:p-10">
+          <section className="mt-6 grid gap-6 rounded-[2rem] border border-blue-100 bg-white/[0.88] p-6 shadow-lg shadow-blue-200/40 backdrop-blur md:grid-cols-[1.15fr_0.85fr] md:p-10 md:shadow-2xl md:shadow-blue-200/[0.42]">
             <div>
               <p className="inline-flex items-center rounded-full bg-blue-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.13em] text-blue-700 ring-1 ring-blue-100">
                 {t.hero.badge}
@@ -1280,10 +1314,20 @@ export default function Home() {
               <p className="mt-6 max-w-[68ch] text-lg leading-relaxed text-slate-600 md:text-xl">{t.hero.subtitle}</p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                <a href="#application" className="rounded-xl bg-gradient-to-r from-blue-700 to-sky-500 px-7 py-3 text-sm font-semibold text-white transition hover:from-blue-800 hover:to-sky-600">
+                <a
+                  href="#application"
+                  className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-700 to-sky-500 px-7 py-3 text-sm font-semibold text-white transition hover:from-blue-800 hover:to-sky-600"
+                >
                   {t.hero.primaryCta}
                 </a>
-                <a href="#checklist" className="rounded-xl border border-blue-200 bg-white px-6 py-3 text-sm font-semibold text-blue-800 transition hover:bg-blue-50">
+                <span className="inline-flex items-center justify-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-rose-700">
+                  {renderIcon("alarm", "h-4 w-4")}
+                  {t.hero.scarcityBadge}
+                </span>
+                <a
+                  href="#checklist"
+                  className="inline-flex items-center justify-center rounded-xl border border-blue-200 bg-white px-6 py-3 text-sm font-semibold text-blue-800 transition hover:bg-blue-50"
+                >
                   {t.hero.secondaryCta}
                 </a>
               </div>
@@ -1297,8 +1341,12 @@ export default function Home() {
               </div>
             </div>
 
-            <aside className="rounded-3xl bg-gradient-to-br from-[#0b2970] via-[#1347b5] to-[#2f90ff] p-6 text-white shadow-xl shadow-blue-400/35">
+            <aside className="rounded-3xl bg-gradient-to-br from-[#0b2970] via-[#1347b5] to-[#2f90ff] p-6 text-white shadow-lg shadow-blue-400/30 md:shadow-xl md:shadow-blue-400/35">
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-blue-100">{t.hero.enrollCard.title}</p>
+              <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-amber-200/70 bg-amber-200 px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-amber-950">
+                {renderIcon("alarm", "h-4 w-4")}
+                {t.hero.enrollCard.alert}
+              </p>
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-white/30 bg-white/10 p-3">
                   <p className="text-xs text-blue-100">{t.hero.enrollCard.start}</p>
@@ -1306,7 +1354,7 @@ export default function Home() {
                 </div>
                 <div className="rounded-xl border border-white/30 bg-white/10 p-3">
                   <p className="text-xs text-blue-100">{t.hero.enrollCard.seats}</p>
-                  <p className="mt-1 text-2xl font-bold leading-tight">{SEATS_LEFT ?? "—"}</p>
+                  <p className="mt-1 text-2xl font-bold leading-tight text-amber-100">{SEATS_LEFT}</p>
                 </div>
               </div>
               <div className="mt-3 rounded-xl border border-white/30 bg-white/10 p-3">
@@ -1325,13 +1373,17 @@ export default function Home() {
           </section>
         </header>
 
-        <section id="checklist" className="fade-up mt-16 rounded-[2rem] border border-blue-100 bg-white p-6 shadow-xl shadow-blue-100/55 md:p-8" style={{ animationDelay: "0.06s" }}>
+        <section
+          id="checklist"
+          className="fade-up mt-16 rounded-[2rem] border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-blue-50 p-6 shadow-lg shadow-amber-100/65 md:p-8 md:shadow-xl"
+          style={{ animationDelay: "0.06s" }}
+        >
           <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
             <div>
               <SectionHeader label={t.lead.label} title={t.lead.title} subtitle={t.lead.subtitle} />
-              <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+              <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-white p-2 text-blue-700 shadow-sm">{renderIcon("pdf", "h-6 w-6")}</div>
+                  <div className="rounded-xl bg-white p-2 text-amber-700 shadow-sm">{renderIcon("pdf", "h-6 w-6")}</div>
                   <div>
                     <p className="text-sm font-semibold text-slate-900">{t.lead.pdfName}</p>
                     <p className="text-xs text-slate-500">PDF · Deutsch für Leben</p>
@@ -1340,15 +1392,23 @@ export default function Home() {
               </div>
             </div>
 
-            <form onSubmit={handleLeadSubmit} className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/70 to-white p-5">
+            <form onSubmit={handleLeadSubmit} noValidate className="rounded-2xl border border-amber-200 bg-white p-5">
               <label className="text-sm font-semibold text-slate-700">
                 {t.lead.email}
                 <input
                   type="email"
                   value={leadEmail}
-                  onChange={(event) => setLeadEmail(event.target.value)}
+                  onChange={(event) => {
+                    setLeadEmail(event.target.value);
+                    if (leadError) {
+                      setLeadError("");
+                    }
+                  }}
                   placeholder="name@example.com"
-                  className="mt-2 w-full rounded-xl border border-blue-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-400"
+                  required
+                  aria-invalid={Boolean(leadError)}
+                  aria-describedby="lead-error"
+                  className="mt-2 w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-amber-400"
                 />
               </label>
               <label className="mt-3 block text-sm font-semibold text-slate-700">
@@ -1358,15 +1418,26 @@ export default function Home() {
                   value={leadTelegram}
                   onChange={(event) => setLeadTelegram(event.target.value)}
                   placeholder="@username"
-                  className="mt-2 w-full rounded-xl border border-blue-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-400"
+                  className="mt-2 w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-amber-400"
                 />
               </label>
-              <button type="submit" className="mt-4 w-full rounded-xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800">
+              <button type="submit" className="mt-4 w-full rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-amber-950 transition hover:bg-amber-400">
                 {t.lead.button}
               </button>
               <p className="mt-3 text-xs text-slate-500">{t.lead.privacy}</p>
-              {leadError ? <p className="mt-2 text-sm text-red-600">{leadError}</p> : null}
-              {leadSuccess ? <p className="mt-2 text-sm text-emerald-700">{t.lead.success}</p> : null}
+              {leadError ? (
+                <p id="lead-error" role="alert" className="mt-2 text-sm text-red-600">
+                  {leadError}
+                </p>
+              ) : null}
+              {leadSuccess ? (
+                <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                  <p className="text-sm font-medium text-emerald-800">{t.lead.success}</p>
+                  <a href="#application" className="mt-2 inline-flex text-sm font-semibold text-emerald-900 underline underline-offset-2">
+                    {t.lead.successCta}
+                  </a>
+                </div>
+              ) : null}
             </form>
           </div>
         </section>
@@ -1546,14 +1617,28 @@ export default function Home() {
           <SectionHeader label={t.visuals.label} title={t.visuals.title} />
           <div className="mt-7 grid gap-5 md:grid-cols-2">
             <article className="overflow-hidden rounded-2xl border border-blue-100 bg-blue-50/40">
-              <img src="/images/leipzig-illustration.svg" alt="Leipzig illustration" className="h-44 w-full object-cover" />
+              <Image
+                src="/images/leipzig-illustration.svg"
+                alt="Leipzig illustration"
+                width={896}
+                height={352}
+                className="h-44 w-full object-cover"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
               <div className="p-4">
                 <h3 className="font-semibold text-slate-900">{t.visuals.cards[0].title}</h3>
                 <p className="mt-1 text-sm text-slate-600">{t.visuals.cards[0].text}</p>
               </div>
             </article>
             <article className="overflow-hidden rounded-2xl border border-blue-100 bg-blue-50/40">
-              <img src="/images/classroom-illustration.svg" alt="Classroom illustration" className="h-44 w-full object-cover" />
+              <Image
+                src="/images/classroom-illustration.svg"
+                alt="Classroom illustration"
+                width={896}
+                height={352}
+                className="h-44 w-full object-cover"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
               <div className="p-4">
                 <h3 className="font-semibold text-slate-900">{t.visuals.cards[1].title}</h3>
                 <p className="mt-1 text-sm text-slate-600">{t.visuals.cards[1].text}</p>
@@ -1623,14 +1708,14 @@ export default function Home() {
           <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.11em] text-blue-700">{t.contacts.email}</p>
-              <a href="mailto:info@deutschfuerleben.de" className="mt-2 block font-medium text-slate-900 hover:text-blue-700">
-                info@deutschfuerleben.de
+              <a href={`mailto:${CONTACT_EMAIL}`} className="mt-2 block font-medium text-slate-900 hover:text-blue-700">
+                {CONTACT_EMAIL}
               </a>
             </div>
             <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.11em] text-blue-700">{t.contacts.telegram}</p>
               <a href="https://t.me/deutschfuerleben" className="mt-2 block font-medium text-slate-900 hover:text-blue-700">
-                @deutschfuerleben
+                {CONTACT_TELEGRAM}
               </a>
             </div>
             <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
@@ -1644,8 +1729,16 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="application" className="fade-up mt-20 rounded-[2rem] border border-blue-800/30 bg-gradient-to-br from-[#0d2d75] via-[#1242a7] to-[#2184f0] px-6 py-9 shadow-2xl shadow-blue-400/30 md:px-10 md:py-12" style={{ animationDelay: "0.37s" }}>
+        <section
+          id="application"
+          className="fade-up mt-20 rounded-[2rem] border border-blue-800/30 bg-gradient-to-br from-[#0d2d75] via-[#1242a7] to-[#2184f0] px-6 py-9 shadow-xl shadow-blue-400/25 md:px-10 md:py-12 md:shadow-2xl md:shadow-blue-400/30"
+          style={{ animationDelay: "0.37s" }}
+        >
           <SectionHeader label={t.form.quickLabel} title={t.form.quickTitle} light />
+          <p className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-amber-200/70 bg-amber-200 px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-amber-950">
+            {renderIcon("alarm", "h-4 w-4")}
+            {t.announcement.startLabel} {START_DATE} • {seatsText}
+          </p>
 
           <div className="mt-7 rounded-2xl border border-white/20 bg-white/10 p-4 md:p-5">
             <div className="grid gap-4 md:grid-cols-3">
@@ -1667,64 +1760,118 @@ export default function Home() {
 
           <div className="mt-8">
             <SectionHeader label="" title={t.form.title} subtitle={t.form.subtitle} light />
-            <p className="mt-2 text-sm text-blue-100">{t.form.nextStep}</p>
+            <p className="mt-2 text-sm font-semibold text-blue-50">{t.form.microcopy}</p>
+            <p className="mt-1 text-sm text-blue-100">{t.form.nextStep}</p>
           </div>
 
-          <form className="mt-7 grid gap-4 md:grid-cols-2">
-            <input type="hidden" name="selected_level" value={levelLabel} />
-            <input type="hidden" name="selected_format" value={formatLabel} />
-            <input type="hidden" name="selected_time" value={timeLabel} />
-            <input type="hidden" name="selected_city" value={city} />
+          {appSuccess ? (
+            <div className="mt-7 rounded-2xl border border-emerald-200/70 bg-emerald-100/95 p-5 text-emerald-950" role="status" aria-live="polite">
+              <p className="text-lg font-bold">{t.form.successTitle}</p>
+              <p className="mt-2 text-sm">{t.form.successText}</p>
+              <p className="mt-2 text-sm">{t.form.privacy}</p>
+              <a
+                href="https://t.me/deutschfuerleben"
+                className="mt-4 inline-flex rounded-lg bg-emerald-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-900"
+              >
+                {t.form.successCta}
+              </a>
+            </div>
+          ) : (
+            <form onSubmit={handleApplicationSubmit} noValidate className="mt-7 grid gap-4 md:grid-cols-2">
+              <input type="hidden" name="selected_level" value={levelLabel} />
+              <input type="hidden" name="selected_format" value={formatLabel} />
+              <input type="hidden" name="selected_time" value={timeLabel} />
+              <input type="hidden" name="selected_city" value={city} />
 
-            <label className="text-sm text-blue-100">
-              {t.form.fields.name}
-              <input
-                type="text"
-                name="name"
-                required
-                placeholder={t.form.placeholders.name}
-                className="mt-2 w-full rounded-xl border border-white/35 bg-white/12 px-4 py-3 text-white outline-none transition placeholder:text-blue-100/80 focus:border-white focus:bg-white/18"
-              />
-            </label>
+              <label className="text-sm text-blue-100">
+                {t.form.fields.telegram}
+                <input
+                  type="text"
+                  name="telegram"
+                  value={appTelegram}
+                  onChange={(event) => {
+                    setAppTelegram(event.target.value);
+                    if (appError) {
+                      setAppError("");
+                    }
+                  }}
+                  placeholder={t.form.placeholders.telegram}
+                  aria-invalid={Boolean(appError)}
+                  aria-describedby="application-contact-hint application-error"
+                  className="mt-2 w-full rounded-xl border border-white/35 bg-white/12 px-4 py-3 text-white outline-none transition placeholder:text-blue-100/80 focus:border-white focus:bg-white/18"
+                />
+              </label>
 
-            <label className="text-sm text-blue-100">
-              {t.form.fields.telegram}
-              <input
-                type="text"
-                name="telegram"
-                required
-                placeholder={t.form.placeholders.telegram}
-                className="mt-2 w-full rounded-xl border border-white/35 bg-white/12 px-4 py-3 text-white outline-none transition placeholder:text-blue-100/80 focus:border-white focus:bg-white/18"
-              />
-            </label>
+              <label className="text-sm text-blue-100">
+                {t.form.fields.email}
+                <input
+                  type="email"
+                  name="email"
+                  value={appEmail}
+                  onChange={(event) => {
+                    setAppEmail(event.target.value);
+                    if (appError) {
+                      setAppError("");
+                    }
+                  }}
+                  placeholder={t.form.placeholders.email}
+                  aria-invalid={Boolean(appError)}
+                  aria-describedby="application-contact-hint application-error"
+                  className="mt-2 w-full rounded-xl border border-white/35 bg-white/12 px-4 py-3 text-white outline-none transition placeholder:text-blue-100/80 focus:border-white focus:bg-white/18"
+                />
+              </label>
 
-            <label className="text-sm text-blue-100 md:col-span-2">
-              {t.form.fields.email}
-              <input
-                type="email"
-                name="email"
-                required
-                placeholder={t.form.placeholders.email}
-                className="mt-2 w-full rounded-xl border border-white/35 bg-white/12 px-4 py-3 text-white outline-none transition placeholder:text-blue-100/80 focus:border-white focus:bg-white/18"
-              />
-            </label>
-
-            <p className="text-sm text-blue-100 md:col-span-2">{t.form.privacy}</p>
-
-            <label className="flex items-start gap-3 text-sm text-blue-100 md:col-span-2">
-              <input type="checkbox" required className="mt-1 h-4 w-4 rounded border-white/40 bg-white/15" />
-              <span>
-                {t.form.consentPrefix}{" "}
-                <a href="/datenschutz" className="font-semibold text-white underline underline-offset-2">
-                  {t.form.consentLink}
+              <p id="application-contact-hint" className="text-sm text-blue-100 md:col-span-2">
+                {t.form.contactHint}
+              </p>
+              <p className="text-sm text-blue-100 md:col-span-2">{t.form.privacy}</p>
+              <p className="text-sm text-blue-100 md:col-span-2">
+                E-Mail:{" "}
+                <a href={`mailto:${CONTACT_EMAIL}`} className="font-semibold text-white underline underline-offset-2">
+                  {CONTACT_EMAIL}
+                </a>{" "}
+                • Telegram:{" "}
+                <a href="https://t.me/deutschfuerleben" className="font-semibold text-white underline underline-offset-2">
+                  {CONTACT_TELEGRAM}
                 </a>
-              </span>
-            </label>
+              </p>
 
-            <button type="submit" className="md:col-span-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-blue-900 transition hover:bg-blue-50">
-              {t.form.submit}
-            </button>
-          </form>
+              <label className="flex items-start gap-3 text-sm text-blue-100 md:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={appConsent}
+                  onChange={(event) => {
+                    setAppConsent(event.target.checked);
+                    if (appError) {
+                      setAppError("");
+                    }
+                  }}
+                  className="mt-1 h-4 w-4 rounded border-white/40 bg-white/15"
+                />
+                <span>
+                  {t.form.consentPrefix}{" "}
+                  <a href="/datenschutz" className="font-semibold text-white underline underline-offset-2">
+                    {t.form.consentLink}
+                  </a>{" "}
+                  {consentAndWord}{" "}
+                  <a href="/impressum" className="font-semibold text-white underline underline-offset-2">
+                    {t.form.consentLinkImpressum}
+                  </a>
+                  .
+                </span>
+              </label>
+
+              {appError ? (
+                <p id="application-error" role="alert" className="text-sm text-rose-100 md:col-span-2">
+                  {appError}
+                </p>
+              ) : null}
+
+              <button type="submit" className="md:col-span-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-blue-900 transition hover:bg-blue-50">
+                {t.form.submit}
+              </button>
+            </form>
+          )}
         </section>
 
         <footer className="fade-up mt-10 pb-4" style={{ animationDelay: "0.4s" }}>
@@ -1744,10 +1891,25 @@ export default function Home() {
         </footer>
       </div>
 
-      <div className="mobile-sticky-cta md:hidden">
-        <a href="#application" className="block w-full rounded-xl bg-blue-700 px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-blue-400/30">
-          {t.nav.apply}
-        </a>
+      <div
+        className={`mobile-sticky-cta md:hidden ${
+          showMobileSticky ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-full opacity-0"
+        }`}
+      >
+        <div className="grid grid-cols-2 gap-2">
+          <a
+            href="#application"
+            className="inline-flex items-center justify-center rounded-xl bg-blue-700 px-4 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-blue-400/30"
+          >
+            {t.nav.apply}
+          </a>
+          <a
+            href="#checklist"
+            className="inline-flex items-center justify-center rounded-xl border border-blue-200 bg-white px-4 py-3 text-center text-sm font-semibold text-blue-900"
+          >
+            {t.hero.secondaryCta}
+          </a>
+        </div>
       </div>
     </main>
   );
