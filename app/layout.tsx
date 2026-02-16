@@ -3,9 +3,9 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://deutschfuerleben.de"),
-  title: "Немецкий для интеграции в Германии | A1-B1, DTZ",
+  title: "Deutsch fur Leben | German for integration in Germany",
   description:
-    "Практический курс немецкого для взрослых мигрантов в Германии: Arzt, Jobcenter, работа, письма, телефон. Старт A1 21.02, осталось 4 места.",
+    "Practical German groups A1-B1 for migrants in Germany: Jobcenter, Behorde, Arzt, work communication, and mini-courses.",
   alternates: {
     languages: {
       uk: "/?lang=ua",
@@ -13,9 +13,9 @@ export const metadata: Metadata = {
     }
   },
   openGraph: {
-    title: "Немецкий для интеграции в Германии | A1-B1, DTZ",
+    title: "Deutsch fur Leben | German for integration in Germany",
     description:
-      "Практический курс немецкого для взрослых мигрантов в Германии: Arzt, Jobcenter, работа, письма, телефон. Старт A1 21.02, осталось 4 места.",
+      "Practical German groups A1-B1 for migrants in Germany: Jobcenter, Behorde, Arzt, work communication, and mini-courses.",
     url: "/",
     siteName: "Deutsch für Leben",
     locale: "ru_RU",
@@ -32,9 +32,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Немецкий для интеграции в Германии | A1-B1, DTZ",
+    title: "Deutsch fur Leben | German for integration in Germany",
     description:
-      "Практический курс немецкого для взрослых мигрантов в Германии: Arzt, Jobcenter, работа, письма, телефон. Старт A1 21.02, осталось 4 места.",
+      "Practical German groups A1-B1 for migrants in Germany: Jobcenter, Behorde, Arzt, work communication, and mini-courses.",
     images: ["/images/leipzig-illustration.svg"]
   }
 };

@@ -1,107 +1,83 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Application from "./components/landing/Application";
-import FAQ from "./components/landing/FAQ";
-import Founder from "./components/landing/Founder";
-import Groups from "./components/landing/Groups";
-import Hero from "./components/landing/Hero";
-import HowItWorks from "./components/landing/HowItWorks";
-import LeadMagnet from "./components/landing/LeadMagnet";
-import Problems from "./components/landing/Problems";
-import Program from "./components/landing/Program";
-import Scenarios from "./components/landing/Scenarios";
-import SectionHeader from "./components/landing/SectionHeader";
-import { LandingIcon } from "./components/landing/icons";
-import { growthFlags, resolveHeroVariant, utmKeys, type HeroVariant } from "./config/growth";
-import { blogPosts } from "./data/blog-posts";
-import { landingContent, type Locale } from "./data/landing-content";
-import socialProofData from "./data/social-proof.json";
+import Image from "next/image";
+import { LazyMotion, domAnimation, m } from "framer-motion";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Locale, MiniCourse } from "../content/landing";
+import { landingContent, primaryScarcityByLocale } from "../content/landing";
+import FinalApplicationForm from "./components/landing/FinalApplicationForm";
+import GroupsSection from "./components/landing/GroupsSection";
+import IntegrationPassCard from "./components/landing/IntegrationPassCard";
+import LeadChecklistCard from "./components/landing/LeadChecklistCard";
+import MiniCourseModal from "./components/landing/MiniCourseModal";
+import MiniCoursesCarousel from "./components/landing/MiniCoursesCarousel";
+import StoryMomentsSection from "./components/landing/StoryMomentsSection";
+import TopUrgencyBar from "./components/landing/TopUrgencyBar";
+import { cardReveal, sectionReveal, staggerChildren } from "./components/landing/animation-tokens";
 
-declare global {
-  interface Window {
-    dataLayer?: Array<Record<string, unknown>>;
-    gtag?: (...args: unknown[]) => void;
-  }
-}
+const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"];
+const ADDON_STORAGE_KEY = "dfl_addons_v2";
 
-function trackEvent(eventName: string, payload: Record<string, unknown>) {
-  if (typeof window === "undefined") {
-    return;
+function parseAddonIds(raw: string | null, availableIds: Set<string>): string[] {
+  if (!raw) {
+    return [];
   }
 
-  window.dataLayer = window.dataLayer ?? [];
-  window.dataLayer.push({ event: eventName, ...payload });
-
-  if (typeof window.gtag === "function") {
-    window.gtag("event", eventName, payload);
-  }
+  return raw
+    .split(",")
+    .map((id) => decodeURIComponent(id.trim()))
+    .filter((id) => availableIds.has(id));
 }
 
 export default function Home() {
   const [locale, setLocale] = useState<Locale>("ua");
-  const [heroVariant, setHeroVariant] = useState<HeroVariant>(growthFlags.defaultHeroVariant);
   const [utmData, setUtmData] = useState<Record<string, string>>({});
-  const [showMobileSticky, setShowMobileSticky] = useState(false);
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
+  const [activeCourse, setActiveCourse] = useState<MiniCourse | null>(null);
 
   const content = landingContent[locale];
-  const activeHeroVariant = growthFlags.enableHeroABTest ? heroVariant : "a";
-  const blogTeasers = useMemo(() => blogPosts.slice(0, 3), []);
-  const realTestimonials = useMemo(
-    () => socialProofData.testimonials.filter((item) => !item.id.startsWith("beta")),
-    []
-  );
-  const showTestimonials = growthFlags.enableTestimonials && realTestimonials.length > 0;
-
-  const trackWithContext = (eventName: string, payload: Record<string, unknown> = {}) => {
-    trackEvent(eventName, {
-      locale,
-      hero_variant: activeHeroVariant,
-      ...payload,
-      ...utmData
-    });
-  };
+  const primaryScarcity = primaryScarcityByLocale[locale];
+  const availableAddonIds = useMemo(() => new Set(content.miniCourses.cards.map((course) => course.id)), [content.miniCourses.cards]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
 
     const langParam = url.searchParams.get("lang");
-    if (langParam === "ru" || langParam === "ua") {
+    if (langParam === "ua" || langParam === "ru") {
       setLocale(langParam);
     }
 
-    const requestedHeroVariant = resolveHeroVariant(url.searchParams.get("hero"));
-    if (growthFlags.enableHeroABTest && requestedHeroVariant) {
-      setHeroVariant(requestedHeroVariant);
-    }
-
-    const storageKey = "dfl_utm_v1";
-    const collected: Record<string, string> = {};
-
-    for (const key of utmKeys) {
+    const collectedUtm: Record<string, string> = {};
+    for (const key of UTM_KEYS) {
       const value = url.searchParams.get(key);
       if (value) {
-        collected[key] = value;
+        collectedUtm[key] = value;
       }
     }
 
-    const persistedRaw = window.localStorage.getItem(storageKey);
-    let persisted: Record<string, string> = {};
-
+    const persistedRaw = window.localStorage.getItem("dfl_utm_v2");
+    let persistedUtm: Record<string, string> = {};
     if (persistedRaw) {
       try {
-        persisted = JSON.parse(persistedRaw) as Record<string, string>;
+        persistedUtm = JSON.parse(persistedRaw) as Record<string, string>;
       } catch {
-        persisted = {};
+        persistedUtm = {};
       }
     }
-
-    const merged = { ...persisted, ...collected };
-    if (Object.keys(merged).length > 0) {
-      setUtmData(merged);
-      window.localStorage.setItem(storageKey, JSON.stringify(merged));
+    const mergedUtm = { ...persistedUtm, ...collectedUtm };
+    if (Object.keys(mergedUtm).length > 0) {
+      window.localStorage.setItem("dfl_utm_v2", JSON.stringify(mergedUtm));
+      setUtmData(mergedUtm);
     }
-  }, []);
+
+    const urlAddons = parseAddonIds(url.searchParams.get("addons"), availableAddonIds);
+    const storageAddons = parseAddonIds(window.localStorage.getItem(ADDON_STORAGE_KEY), availableAddonIds);
+    const startAddons = urlAddons.length > 0 ? urlAddons : storageAddons;
+
+    if (startAddons.length > 0) {
+      setSelectedAddons(startAddons);
+    }
+  }, [availableAddonIds]);
 
   useEffect(() => {
     document.documentElement.lang = locale === "ua" ? "uk" : "ru";
@@ -109,14 +85,17 @@ export default function Home() {
     const url = new URL(window.location.href);
     url.searchParams.set("lang", locale);
 
-    if (growthFlags.enableHeroABTest) {
-      url.searchParams.set("hero", activeHeroVariant);
+    if (selectedAddons.length > 0) {
+      const encoded = selectedAddons.map((id) => encodeURIComponent(id)).join(",");
+      url.searchParams.set("addons", encoded);
+      window.localStorage.setItem(ADDON_STORAGE_KEY, selectedAddons.join(","));
     } else {
-      url.searchParams.delete("hero");
+      url.searchParams.delete("addons");
+      window.localStorage.removeItem(ADDON_STORAGE_KEY);
     }
 
     window.history.replaceState(null, "", `${url.pathname}?${url.searchParams.toString()}${url.hash}`);
-  }, [locale, activeHeroVariant]);
+  }, [locale, selectedAddons]);
 
   useEffect(() => {
     const upsertMeta = (attr: "name" | "property", key: string, value: string) => {
@@ -135,7 +114,6 @@ export default function Home() {
     };
 
     document.title = content.meta.title;
-
     upsertMeta("name", "description", content.meta.description);
     upsertMeta("property", "og:title", content.meta.title);
     upsertMeta("property", "og:description", content.meta.description);
@@ -144,33 +122,15 @@ export default function Home() {
     upsertMeta("property", "og:site_name", "Deutsch fur Leben");
     upsertMeta("property", "og:image", "/images/leipzig-illustration.svg");
     upsertMeta("property", "og:url", window.location.href);
-
     upsertMeta("name", "twitter:card", "summary_large_image");
     upsertMeta("name", "twitter:title", content.meta.title);
     upsertMeta("name", "twitter:description", content.meta.description);
     upsertMeta("name", "twitter:image", "/images/leipzig-illustration.svg");
   }, [content.meta]);
 
-  useEffect(() => {
-    const onScroll = () => {
-      setShowMobileSticky(window.scrollY > 280);
-    };
-
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+  const toggleAddon = useCallback((id: string) => {
+    setSelectedAddons((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
   }, []);
-
-  useEffect(() => {
-    trackWithContext("view_hero");
-  }, [locale, activeHeroVariant, utmData]);
-
-  const handleCtaClick = (ctaId: string, placement: string) => {
-    trackWithContext("click_cta", {
-      cta_id: ctaId,
-      placement
-    });
-  };
 
   const faqJsonLd = useMemo(
     () =>
@@ -191,244 +151,221 @@ export default function Home() {
   );
 
   return (
-    <main className="relative isolate overflow-x-clip pb-36 md:pb-16">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqJsonLd }} />
+    <LazyMotion features={domAnimation}>
+      <main className="landing-root pb-20">
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqJsonLd }} />
 
-      <div className="sticky top-0 z-[80] border-b border-blue-300/30 bg-gradient-to-r from-[#0b2c72] via-[#1346ae] to-[#1f79e0] text-white shadow-lg shadow-blue-500/20">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm sm:px-8 lg:px-10">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-300 px-2.5 py-1 text-xs font-bold uppercase tracking-[0.08em] text-amber-950">
-              <LandingIcon name="alarm" className="h-3.5 w-3.5" />
-              {content.announcement.badge}
-            </span>
-            <p className="font-semibold">{content.announcement.text}</p>
-          </div>
-          <a
-            href="#application"
-            onClick={() => handleCtaClick("announcement_apply", "announcement_bar")}
-            className="rounded-full bg-white px-4 py-1.5 text-xs font-bold text-blue-900 transition hover:bg-blue-50"
-          >
-            {content.announcement.cta}
-          </a>
-        </div>
-      </div>
+        <TopUrgencyBar content={content.topUrgency} scarcity={primaryScarcity} />
 
-      <div className="mx-auto max-w-7xl px-5 pt-5 sm:px-8 lg:px-10">
-        <header className="fade-up">
-          <nav className="rounded-2xl border border-blue-100 bg-white/90 px-4 py-3 shadow-xl shadow-blue-100/70 backdrop-blur sm:px-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="mx-auto max-w-6xl px-4 sm:px-8">
+          <header className="pt-4">
+            <nav className="landing-nav">
               <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-content-center rounded-xl bg-gradient-to-br from-blue-700 to-sky-500 text-sm font-extrabold text-white">
-                  DfL
-                </div>
-                <p className="text-sm font-bold text-slate-900">Deutsch fur Leben</p>
+                <div className="brand-mark">DfL</div>
+                <p className="text-sm font-semibold text-slate-900">Deutsch fur Leben</p>
               </div>
 
-              <div className="order-3 flex w-full items-center gap-2 overflow-x-auto pb-1 md:order-2 md:w-auto md:justify-center md:pb-0">
-                <a href="#format" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
-                  {content.nav.howItWorks}
+              <div className="hidden items-center gap-2 lg:flex">
+                <a href="#story" className="nav-link">
+                  {content.nav.story}
                 </a>
-                <a href="#program" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
-                  {content.nav.program}
-                </a>
-                <a href="#groups" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
+                <a href="#groups" className="nav-link">
                   {content.nav.groups}
                 </a>
-                <a href="#faq" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
+                <a href="#mini-courses" className="nav-link">
+                  {content.nav.miniCourses}
+                </a>
+                <a href="#faq" className="nav-link">
                   {content.nav.faq}
                 </a>
-                {growthFlags.enableBlogTeaser ? (
-                  <a href="#blog" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
-                    {content.nav.blog}
-                  </a>
-                ) : (
-                  <a href="/blog" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
-                    {content.nav.blog}
-                  </a>
-                )}
-                <a href="#contacts" className="rounded-full px-3 py-1 text-sm text-slate-600 transition hover:bg-blue-50">
-                  {content.nav.contacts}
+                <a href="#checklist" className="nav-link nav-link--secondary">
+                  {content.nav.checklist}
                 </a>
               </div>
 
-              <div className="order-2 flex items-center gap-2 md:order-3">
-                <div className="relative flex w-[96px] rounded-full border border-slate-200 bg-slate-50 p-1">
-                  <span
-                    aria-hidden
-                    className={`pointer-events-none absolute left-1 top-1 h-6 w-[42px] rounded-full bg-blue-700 shadow-sm transition-transform duration-300 ease-out ${
-                      locale === "ru" ? "translate-x-[46px]" : "translate-x-0"
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setLocale("ua")}
-                    className={`relative z-10 h-6 w-[42px] rounded-full text-xs font-semibold ${
-                      locale === "ua" ? "text-white" : "text-slate-600"
-                    }`}
-                  >
+              <div className="flex items-center gap-2">
+                <div className="lang-switch" role="group" aria-label="Language switcher">
+                  <button type="button" className={locale === "ua" ? "lang-switch__button lang-switch__button--active" : "lang-switch__button"} onClick={() => setLocale("ua")}>
                     UA
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setLocale("ru")}
-                    className={`relative z-10 h-6 w-[42px] rounded-full text-xs font-semibold ${
-                      locale === "ru" ? "text-white" : "text-slate-600"
-                    }`}
-                  >
+                  <button type="button" className={locale === "ru" ? "lang-switch__button lang-switch__button--active" : "lang-switch__button"} onClick={() => setLocale("ru")}>
                     RU
                   </button>
                 </div>
-                <a
-                  href="#application"
-                  onClick={() => handleCtaClick("nav_apply", "navigation")}
-                  className="rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-                >
-                  {content.nav.apply}
+                <a href="#application" className="btn-primary btn-primary--sm">
+                  {content.nav.primaryCta}
                 </a>
               </div>
-            </div>
-          </nav>
+            </nav>
 
-          <Hero hero={content.hero} pass={content.pass} activeVariant={activeHeroVariant} onCtaClick={handleCtaClick} />
-        </header>
+            <section className="hero-grid">
+              <m.div variants={sectionReveal()} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
+                <p className="section-kicker">{content.hero.eyebrow}</p>
+                <h1 className="mt-4 max-w-[18ch] text-4xl font-semibold leading-[1.05] text-slate-950 md:text-6xl">{content.hero.title}</h1>
+                <p className="mt-5 max-w-2xl text-base leading-relaxed text-slate-600 md:text-lg">{content.hero.subtitle}</p>
 
-        <Problems content={content.problems} />
-        <HowItWorks content={content.howItWorks} />
-        <Scenarios content={content.scenarios} />
-        <Program content={content.program} />
-        <Groups content={content.groups} pass={content.pass} />
-        <Founder content={content.founder} />
-        {showTestimonials ? (
-          <section className="section-shell fade-up" style={{ animationDelay: "0.245s" }}>
-            <SectionHeader
-              label={locale === "ua" ? "Відгуки" : "Отзывы"}
-              title={locale === "ua" ? "Що кажуть студенти" : "Что говорят студенты"}
-            />
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
-              {realTestimonials.map((item) => (
-                <article key={item.id} className="card-neutral">
-                  <p className="text-xs font-semibold uppercase tracking-[0.11em] text-blue-700">{item.tag[locale]}</p>
-                  <p className="mt-2 text-sm text-slate-700">{item.quote[locale]}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-        ) : null}
-        <FAQ content={content.faq} />
-
-        {growthFlags.enableBlogTeaser ? (
-          <section id="blog" className="section-shell fade-up" style={{ animationDelay: "0.29s" }}>
-            <SectionHeader label={content.blogTeaser.label} title={content.blogTeaser.title} subtitle={content.blogTeaser.text} />
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
-              {blogTeasers.map((post) => (
-                <article key={post.slug} className="card-primary">
-                  <h3 className="text-base font-semibold text-slate-900">{post.title}</h3>
-                  <p className="mt-1.5 text-sm text-slate-600">{post.excerpt}</p>
-                  <a href={`/blog/${post.slug}`} className="mt-3 inline-flex text-sm font-semibold text-blue-800 underline underline-offset-2">
-                    {content.blogTeaser.cta}
+                <div className="mt-7 flex flex-wrap items-center gap-3">
+                  <a href="#application" className="btn-primary">
+                    {content.hero.primaryCta}
                   </a>
-                </article>
-              ))}
-            </div>
-            <a href="/blog" className="mt-5 inline-flex rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white">
-              {content.blogTeaser.cta}
-            </a>
-          </section>
-        ) : (
-          <div id="blog" className="scroll-mt-32" aria-hidden />
-        )}
+                  <a href="#checklist" className="btn-secondary">
+                    {content.hero.secondaryCta}
+                  </a>
+                </div>
 
-        <section
-          id="application"
-          className="fade-up mt-16 rounded-[2rem] border border-blue-800/30 bg-gradient-to-br from-[#0d2d75] via-[#1242a7] to-[#2184f0] px-6 py-9 shadow-xl shadow-blue-400/25 md:px-10 md:py-12 md:shadow-2xl md:shadow-blue-400/30"
-          style={{ animationDelay: "0.32s" }}
-        >
-          <SectionHeader label={content.finalCta.label} title={content.finalCta.title} subtitle={content.finalCta.subtitle} light />
-          <p className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-amber-200/70 bg-amber-200 px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-amber-950">
-            <LandingIcon name="alarm" className="h-4 w-4" />
-            {content.finalCta.scarcityLine}
-          </p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {content.hero.trustPills.map((pill) => (
+                    <span key={pill} className="trust-pill">
+                      {pill}
+                    </span>
+                  ))}
+                </div>
+              </m.div>
 
-          <div className="mt-7 grid gap-5 lg:grid-cols-2">
-            <LeadMagnet content={content.leadMagnet} utmData={utmData} onTrackEvent={trackWithContext} onCtaClick={handleCtaClick} />
-            <Application
-              locale={locale}
-              content={content.form}
-              contacts={content.contacts}
-              utmData={utmData}
-              heroVariant={activeHeroVariant}
-              onTrackEvent={trackWithContext}
-            />
-          </div>
+              <m.div
+                variants={sectionReveal(0.08)}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.25 }}
+                className="hero-grid__pass"
+              >
+                <IntegrationPassCard content={content.pass} scarcity={primaryScarcity} />
+              </m.div>
+            </section>
+          </header>
 
-          <div id="contacts" className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4 scroll-mt-32">
-            <article className="rounded-2xl border border-white/30 bg-white/10 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.11em] text-blue-100">E-Mail</p>
-              <a href={`mailto:${content.contacts.email}`} className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-white hover:text-blue-100">
-                <LandingIcon name="mail" className="h-4 w-4" />
-                {content.contacts.email}
-              </a>
-            </article>
-            <article className="rounded-2xl border border-white/30 bg-white/10 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.11em] text-blue-100">Telegram</p>
-              <a href="https://t.me/deutschfuerleben" className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-white hover:text-blue-100">
-                <LandingIcon name="message" className="h-4 w-4" />
-                {content.contacts.telegram}
-              </a>
-            </article>
-            <article className="rounded-2xl border border-white/30 bg-white/10 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.11em] text-blue-100">Leipzig / Online</p>
-              <p className="mt-2 inline-flex items-start gap-2 text-sm font-semibold text-white">
-                <LandingIcon name="mapPin" className="mt-0.5 h-4 w-4" />
-                {content.contacts.address}
+          <StoryMomentsSection content={content.story} />
+          <GroupsSection content={content.groups} />
+
+          <MiniCoursesCarousel
+            content={content.miniCourses}
+            selectedIds={selectedAddons}
+            forWhomLabel={locale === "ua" ? "Для кого" : "Для кого"}
+            outcomeLabel={locale === "ua" ? "Результат" : "Результат"}
+            addedLabel={locale === "ua" ? "Додано" : "Добавлено"}
+            onOpen={setActiveCourse}
+          />
+
+          <section className="section-surface founder-showcase">
+            <m.div variants={sectionReveal()} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
+              <p className="section-kicker">{content.founder.label}</p>
+              <h2 className="mt-3 text-3xl font-semibold text-slate-950 md:text-4xl">{content.founder.title}</h2>
+              <p className="mt-2 text-base text-slate-600">{content.founder.role}</p>
+              <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                <svg viewBox="0 0 16 16" aria-hidden className="h-3.5 w-3.5 text-emerald-600">
+                  <path
+                    d="M8 1.5a6.5 6.5 0 1 1 0 13a6.5 6.5 0 0 1 0-13Zm2.95 4.74a.75.75 0 0 0-1.1-1.02L7.2 8.1L6.1 7a.75.75 0 0 0-1.06 1.06l1.63 1.63a.75.75 0 0 0 1.07-.02l3.2-3.43Z"
+                    fill="currentColor"
+                  />
+                </svg>
+                <span>{content.founder.metaLine}</span>
               </p>
-            </article>
-            <article className="rounded-2xl border border-amber-200/80 bg-amber-100 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.11em] text-amber-900">24h</p>
-              <p className="mt-2 text-sm font-semibold text-amber-950">{content.contacts.response}</p>
-            </article>
-          </div>
-        </section>
+              <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate-700">{content.founder.text}</p>
 
-        <footer className="fade-up mt-10 pb-4" style={{ animationDelay: "0.38s" }}>
-          <p className="text-center text-sm text-slate-600">{content.footer.disclaimer}</p>
-          <p className="mt-2 text-center text-sm text-slate-600">{content.footer.contactLine}</p>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm text-slate-700">
-            <a href="/impressum" className="rounded-full border border-blue-100 bg-white px-4 py-1.5 hover:bg-blue-50">
-              {content.footer.links.impressum}
-            </a>
-            <a href="/datenschutz" className="rounded-full border border-blue-100 bg-white px-4 py-1.5 hover:bg-blue-50">
-              {content.footer.links.privacy}
-            </a>
-            <a href="/kontakt" className="rounded-full border border-blue-100 bg-white px-4 py-1.5 hover:bg-blue-50">
-              {content.footer.links.contact}
-            </a>
-          </div>
-        </footer>
-      </div>
+              <m.ul
+                className="mt-6 grid gap-3 md:grid-cols-3"
+                variants={{ hidden: {}, visible: { transition: staggerChildren } }}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.2 }}
+              >
+                {content.founder.bullets.map((bullet) => (
+                  <m.li key={bullet} variants={cardReveal} className="founder-bullet">
+                    {bullet}
+                  </m.li>
+                ))}
+              </m.ul>
+            </m.div>
 
-      <div
-        className={`mobile-sticky-cta md:hidden ${
-          showMobileSticky ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-full opacity-0"
-        }`}
-      >
-        <div className="grid grid-cols-2 gap-2">
-          <a
-            href="#application"
-            onClick={() => handleCtaClick("mobile_apply", "mobile_sticky")}
-            className="inline-flex items-center justify-center rounded-xl bg-blue-700 px-4 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-blue-400/30"
-          >
-            {content.nav.apply}
-          </a>
-          <a
-            href="#checklist"
-            onClick={() => handleCtaClick("mobile_checklist", "mobile_sticky")}
-            className="inline-flex items-center justify-center rounded-xl border border-blue-200 bg-white px-4 py-3 text-center text-sm font-semibold text-blue-900"
-          >
-            {content.hero.variants[activeHeroVariant].secondaryCta}
-          </a>
+            <m.div variants={sectionReveal(0.08)} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
+              <div className="founder-image-wrap">
+                <Image
+                  src="/images/founder_portrait.png"
+                  alt={content.founder.title}
+                  width={2048}
+                  height={2048}
+                  sizes="(max-width: 1024px) 100vw, 32vw"
+                  className="founder-image"
+                />
+              </div>
+            </m.div>
+          </section>
+
+          <section id="application" className="section-surface section-surface--application scroll-mt-28">
+            <div className="application-grid grid gap-5 lg:grid-cols-[0.86fr_1.14fr]">
+              <LeadChecklistCard content={content.checklist} />
+              <FinalApplicationForm
+                content={content.form}
+                contacts={content.contacts}
+                miniCoursesContent={content.miniCourses}
+                miniCourses={content.miniCourses.cards}
+                selectedAddons={selectedAddons}
+                utmData={utmData}
+                onToggleAddon={toggleAddon}
+              />
+            </div>
+          </section>
+
+          <section id="faq" className="section-surface scroll-mt-28">
+            <m.div variants={sectionReveal()} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
+              <p className="section-kicker">{content.faq.label}</p>
+              <h2 className="mt-3 text-3xl font-semibold text-slate-950 md:text-4xl">{content.faq.title}</h2>
+            </m.div>
+
+            <m.div
+              className="mt-6 grid gap-3"
+              variants={{ hidden: {}, visible: { transition: staggerChildren } }}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.2 }}
+            >
+              {content.faq.items.map((item) => (
+                <m.details key={item.q} variants={cardReveal} className="faq-item">
+                  <summary>{item.q}</summary>
+                  <p>{item.a}</p>
+                </m.details>
+              ))}
+            </m.div>
+          </section>
+
+          <footer className="landing-footer">
+            <p>{content.footer.legal}</p>
+            <p className="mt-1">{content.footer.contactLine}</p>
+            <p className="mt-3 text-sm text-slate-600">{content.contacts.location}</p>
+            <p className="mt-1 text-sm text-slate-600">{content.contacts.response}</p>
+
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <a href="/impressum" className="nav-link">
+                {content.footer.links.impressum}
+              </a>
+              <a href="/datenschutz" className="nav-link">
+                {content.footer.links.privacy}
+              </a>
+              <a href="/kontakt" className="nav-link">
+                {content.footer.links.contact}
+              </a>
+            </div>
+          </footer>
         </div>
-      </div>
-    </main>
+
+        <MiniCourseModal
+          content={content.miniCourses}
+          course={activeCourse}
+          selected={activeCourse ? selectedAddons.includes(activeCourse.id) : false}
+          addLabel={locale === "ua" ? "Додати модуль" : "Добавить модуль"}
+          removeLabel={locale === "ua" ? "Прибрати модуль" : "Убрать модуль"}
+          closeLabel={locale === "ua" ? "Закрити" : "Закрыть"}
+          jumpLabel={locale === "ua" ? "Перейти до фінальної заявки" : "Перейти к финальной заявке"}
+          introLabel={locale === "ua" ? "Модуль" : "Модуль"}
+          forWhomLabel={locale === "ua" ? "Для кого" : "Для кого"}
+          resultLabel={locale === "ua" ? "Результат після 4 тижнів" : "Результат после 4 недель"}
+          insideLabel={locale === "ua" ? "Що всередині" : "Что внутри"}
+          deliverablesLabel={locale === "ua" ? "Матеріали, які ви отримаєте" : "Материалы, которые вы получите"}
+          notForLabel={locale === "ua" ? "Чесно: кому не підійде" : "Честно: кому не подойдет"}
+          onToggle={toggleAddon}
+          onClose={() => setActiveCourse(null)}
+        />
+      </main>
+    </LazyMotion>
   );
 }
