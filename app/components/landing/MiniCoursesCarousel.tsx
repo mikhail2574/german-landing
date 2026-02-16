@@ -80,8 +80,7 @@ export default function MiniCoursesCarousel({
         whileInView="visible"
         viewport={{ once: true, amount: 0.25 }}
       >
-        <p className="section-kicker section-kicker--on-dark">Upsell</p>
-        <h2 className="mt-3 text-3xl font-semibold text-white md:text-4xl">{content.title}</h2>
+        <h2 className="text-3xl font-semibold text-white md:text-4xl">{content.title}</h2>
         <p className="mt-3 max-w-3xl text-base text-slate-200 md:text-lg">{content.subtitle}</p>
 
         <div className="mt-6 flex items-center justify-between gap-3">

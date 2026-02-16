@@ -14,8 +14,7 @@ export default function GroupsSection({ content, onPrimaryClick }: GroupsSection
   return (
     <section id="groups" className="section-surface section-surface--alt scroll-mt-28">
       <m.div variants={sectionReveal()} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
-        <p className="section-kicker">{content.label}</p>
-        <h2 className="mt-3 text-3xl font-semibold text-slate-950 md:text-4xl">{content.title}</h2>
+        <h2 className="text-3xl font-semibold text-slate-950 md:text-4xl">{content.title}</h2>
         <p className="mt-3 max-w-2xl text-base text-slate-600">{content.subtitle}</p>
       </m.div>
 

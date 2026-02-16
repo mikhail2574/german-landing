@@ -71,8 +71,7 @@ export default function LeadChecklistCard({ content }: LeadChecklistCardProps) {
   return (
     <>
       <article id="checklist" className="checklist-card scroll-mt-28">
-        <p className="section-kicker">{content.label}</p>
-        <h3 className="mt-3 text-2xl font-semibold text-slate-950">{content.title}</h3>
+        <h3 className="text-2xl font-semibold text-slate-950">{content.title}</h3>
         <p className="mt-3 text-sm text-slate-700">{content.subtitle}</p>
 
         <ul className="mt-4 grid gap-2">

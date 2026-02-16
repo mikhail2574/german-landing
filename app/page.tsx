@@ -248,8 +248,7 @@ export default function Home() {
 
           <section className="section-surface founder-showcase">
             <m.div variants={sectionReveal()} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
-              <p className="section-kicker">{content.founder.label}</p>
-              <h2 className="mt-3 text-3xl font-semibold text-slate-950 md:text-4xl">{content.founder.title}</h2>
+              <h2 className="text-3xl font-semibold text-slate-950 md:text-4xl">{content.founder.title}</h2>
               <p className="mt-2 text-base text-slate-600">{content.founder.role}</p>
               <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
                 <svg viewBox="0 0 16 16" aria-hidden className="h-3.5 w-3.5 text-emerald-600">
@@ -308,8 +307,7 @@ export default function Home() {
 
           <section id="faq" className="section-surface scroll-mt-28">
             <m.div variants={sectionReveal()} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
-              <p className="section-kicker">{content.faq.label}</p>
-              <h2 className="mt-3 text-3xl font-semibold text-slate-950 md:text-4xl">{content.faq.title}</h2>
+              <h2 className="text-3xl font-semibold text-slate-950 md:text-4xl">{content.faq.title}</h2>
             </m.div>
 
             <m.div
